@@ -1,9 +1,13 @@
-const TelegramBot = require("node-telegram-bot-api");
-const fs = require("fs");
-const CronJob = require("cron").CronJob;
-const db = require("./db/db.js");
+import TelegramBot from "node-telegram-bot-api";
+import fs from "fs";
+import CronJob from "cron";
+// const CronJob = require("cron").CronJob;
+// const db = require("./db/db.js");
+import db from "./db/db.js";
+import { daysToSeconds, getSubscriptionRemainingTime } from "./utils/utils.js";
 
-require("dotenv").config();
+import dotenv from "dotenv";
+dotenv.config();
 
 const bot = new TelegramBot(process.env.API_KEY_BOT, {
   polling: true,
@@ -34,10 +38,31 @@ const initBot = function () {
   bot.on("text", async (msg) => {
     try {
       if (msg.text.startsWith("/start")) {
-        await bot.sendMessage(
-          msg.chat.id,
-          "Добро пожаловать! Выберите необходимое действие в меню"
-        );
+        const userId = msg.from.id;
+        const userNickname = await db.getUserNickname(userId);
+
+        if (userNickname) {
+          const timeSub = await db.getTimeSubscription(userId);
+
+          const remainedSubTime = getSubscriptionRemainingTime(timeSub);
+
+          if (remainedSubTime) {
+            await bot.sendMessage(
+              msg.chat.id,
+              `Добро пожаловать, ${userNickname}!\nСтатус Вашей подписки: ${remainedSubTime}`
+            );
+
+            await bot.sendMessage(
+              msg.chat.id,
+              `Выберите необходимое действие в меню`
+            );
+          } else
+            await bot.sendMessage(
+              msg.chat.id,
+              `Добро пожаловать! Выберите необходимое действие в меню`
+            );
+        }
+
         // console.log(await db.getTimeSubscription(2));
         // await bot.sendMessage(msg.chat.id, m);
       } else if (msg.text == "/subscribe") {
@@ -118,11 +143,30 @@ const initBot = function () {
     try {
       // TODO: fix TypeError: Cannot read properties of undefined (reading 'chat')
       // await bot.deleteMessage(ctx.message.chat.id, ctx.message.message_id);
+      if (ctx.successful_payment.invoice_payload === "month_sub") {
+        // const timeSub = Date.now() + daysToSeconds(30);
+        const date = new Date();
+        const timeSub = date.setDate(date.getDate() + 30.44);
 
-      await bot.sendMessage(
-        ctx.chat.id,
-        `Оплата прошла успешно! Идентификатор платежа: ${ctx.successful_payment.provider_payment_charge_id}`
-      );
+        const userId = ctx.from.id;
+        const paymentId = ctx.successful_payment.provider_payment_charge_id;
+
+        const userNickname = await db.getUserNickname(userId);
+
+        if (!userNickname)
+          await db.addNewUser(
+            userId,
+            ctx.from.username,
+            ctx.from.first_name + (ctx.from.last_name ?? "")
+          );
+
+        await db.setSubscription(userId, timeSub, paymentId);
+
+        await bot.sendMessage(
+          ctx.chat.id,
+          `Оплата прошла успешно! Идентификатор платежа: ${paymentId}`
+        );
+      }
     } catch (error) {
       console.log(error);
     }

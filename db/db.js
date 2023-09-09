@@ -1,8 +1,10 @@
-const sqlite3 = require("sqlite3").verbose();
+import sqlite3 from "sqlite3";
+sqlite3.verbose();
+
 let db;
 
 const CREATE =
-  "CREATE TABLE IF NOT EXISTS users (id INTEGER, user_id INTEGER, nickname TEXT, time_sub INTEGER, payment_code TEXT, signup TEXT )";
+  "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT,  time_sub INTEGER, payment_code TEXT, signup TEXT)";
 const SELECT_USERS = "SELECT * FROM users";
 const INSERT = "INSERT INTO users VALUES (?,?,?,?,?)";
 const DELETE = "DELETE FROM users WHERE chatId=?";
@@ -37,18 +39,63 @@ const database = {
     });
   },
 
-  setTimeSubscription(userId, timeSub) {
+  addNewUser(userId, nickname, fullname) {
     return new Promise((resolve, reject) => {
       openDb();
 
       db.serialize(() => {
         try {
-          var stmt = db.prepare("UPDATE users SET time_sub=? WHERE user_id=?");
-          stmt.run(timeSub, userId);
+          var stmt = db.prepare(
+            `INSERT INTO users (user_id, nickname, fullname) VALUES (?,?,?)`
+          );
+          stmt.run(userId, nickname, fullname);
           stmt.finalize();
           resolve();
         } catch (e) {
           reject();
+        }
+
+        closeDb();
+      });
+    });
+  },
+
+  getUserNickname(userId) {
+    return new Promise((resolve, reject) => {
+      openDb();
+
+      db.serialize(() => {
+        db.get(
+          `SELECT nickname FROM users WHERE user_id='${userId}'`,
+          (err, row) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(row?.nickname);
+            }
+
+            closeDb();
+          }
+        );
+      });
+    });
+  },
+
+  setSubscription(userId, timeSub, paymentId) {
+    return new Promise((resolve, reject) => {
+      openDb();
+
+      db.serialize(() => {
+        try {
+          db.run(
+            "UPDATE users SET time_sub=?, payment_code=? WHERE user_id=?",
+            timeSub,
+            paymentId,
+            userId
+          );
+          resolve();
+        } catch (e) {
+          reject(e);
         }
 
         closeDb();
@@ -122,5 +169,7 @@ const database = {
   // },
 };
 
-// Export public methods
-module.exports = database;
+// // Export public methods
+// module.exports = database;
+
+export default database;
