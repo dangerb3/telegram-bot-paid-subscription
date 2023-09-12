@@ -3,8 +3,11 @@ sqlite3.verbose();
 
 let db;
 
-const CREATE =
-  "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT,  time_sub INTEGER, payment_code TEXT, signup TEXT)";
+const columns =
+  "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT, time_sub INTEGER, payment_code TEXT, card_numbers TEXT, payment_status TEXT, payment_date TEXT)";
+const CREATE_USERS_TABLE = "CREATE TABLE IF NOT EXISTS users " + columns;
+const CREATE_PAYMENTS_TABLE = "CREATE TABLE IF NOT EXISTS payments " + columns;
+
 const SELECT_USERS = "SELECT * FROM users";
 const INSERT = "INSERT INTO users VALUES (?,?,?,?,?)";
 const DELETE = "DELETE FROM users WHERE chatId=?";
@@ -23,7 +26,8 @@ const database = {
       openDb();
 
       db.serialize(() => {
-        db.run(CREATE);
+        db.run(CREATE_USERS_TABLE);
+        db.run(CREATE_PAYMENTS_TABLE);
 
         db.all(SELECT_USERS, (err, arrayRows) => {
           console.log(arrayRows);
@@ -40,6 +44,7 @@ const database = {
   },
 
   addNewUser(userId, nickname, fullname) {
+    console.log("add new user");
     return new Promise((resolve, reject) => {
       openDb();
 
@@ -81,16 +86,46 @@ const database = {
     });
   },
 
-  setSubscription(userId, timeSub, paymentId) {
+  setSubscription(
+    userId,
+    timeSub,
+    paymentId,
+    cardNumbers,
+    paymentStatus,
+    paymentDate
+  ) {
     return new Promise((resolve, reject) => {
       openDb();
 
       db.serialize(() => {
         try {
           db.run(
-            "UPDATE users SET time_sub=?, payment_code=? WHERE user_id=?",
+            "UPDATE users SET time_sub=?, payment_code=?, card_numbers=?, payment_status=?, payment_date=? WHERE user_id=?",
             timeSub,
             paymentId,
+            cardNumbers,
+            paymentStatus,
+            paymentDate,
+            userId
+          );
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+
+        closeDb();
+      });
+    });
+  },
+
+  updatePaymentHistory(userId) {
+    return new Promise((resolve, reject) => {
+      openDb();
+
+      db.serialize(() => {
+        try {
+          db.run(
+            "INSERT INTO payments (user_id, nickname, fullname, time_sub, payment_code, card_numbers, payment_status, payment_date) SELECT user_id, nickname, fullname, time_sub, payment_code, card_numbers, payment_status, payment_date FROM users WHERE user_id=?",
             userId
           );
           resolve();
@@ -104,6 +139,27 @@ const database = {
   },
 
   getTimeSubscription(userId) {
+    return new Promise((resolve, reject) => {
+      openDb();
+
+      db.serialize(() => {
+        db.get(
+          `SELECT time_sub FROM users WHERE user_id='${userId}'`,
+          (err, row) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(row.time_sub);
+            }
+
+            closeDb();
+          }
+        );
+      });
+    });
+  },
+
+  getPaymentsHistory(userId) {
     return new Promise((resolve, reject) => {
       openDb();
 

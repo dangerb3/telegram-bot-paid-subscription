@@ -7,3 +7,5 @@
 !.yarn/versions
 
 .env
+
+db/db.db

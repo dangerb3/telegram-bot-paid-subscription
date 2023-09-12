@@ -22,3 +22,7 @@ export const getSubscriptionRemainingTime = (timeSub) => {
   if (differenceTime <= 0) return false;
   else return dateTimeToHumanFormat(differenceTime);
 };
+
+export const timeout = (ms) => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
