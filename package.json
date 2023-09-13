@@ -23,5 +23,9 @@
     "uuid": "^9.0.0",
     "yookassa": "^0.1.1"
   },
-  "packageManager": "yarn@3.6.3"
+  "packageManager": "yarn@3.6.3",
+  "devDependencies": {
+    "jspdf": "^2.5.1",
+    "lodash": "^4.17.21"
+  }
 }

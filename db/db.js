@@ -164,13 +164,13 @@ const database = {
       openDb();
 
       db.serialize(() => {
-        db.get(
-          `SELECT time_sub FROM users WHERE user_id='${userId}'`,
+        db.all(
+          `SELECT time_sub, payment_code, card_numbers, payment_status, payment_date  FROM payments WHERE user_id='${userId}'`,
           (err, row) => {
             if (err) {
               reject(err);
             } else {
-              resolve(row.time_sub);
+              resolve(row);
             }
 
             closeDb();

@@ -6,9 +6,17 @@ import express from "express";
 // const CronJob = require("cron").CronJob;
 // const db = require("./db/db.js");
 import db from "./db/db.js";
-import { timeout, getSubscriptionRemainingTime } from "./utils/utils.js";
+import {
+  timeout,
+  getSubscriptionRemainingTime,
+  createPDFReport,
+  parseTimestampToHumanDate,
+} from "./utils/utils.js";
 import axios from "axios";
 import YooKassa from "yookassa";
+
+// process.env.NTBA_FIX_319 = 1;
+// process.env.NTBA_FIX_350 = 0;
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -61,19 +69,10 @@ const initBot = function () {
 
   bot.on("text", async (msg) => {
     try {
-      if (msg.text.startsWith("/start")) {
-        await db.updatePaymentHistory(
-          1
-          // ctx.from.username,
-          // fullname,
-          // timeSub,
-          // paymentId,
-          // cardNumbers,
-          // savedPayment.status
-        );
-        const userId = msg.from.id;
-        const userNickname = await db.getUserNickname(userId);
+      const userId = msg.from.id;
+      const userNickname = await db.getUserNickname(userId);
 
+      if (msg.text.startsWith("/start")) {
         if (userNickname) {
           const timeSub = await db.getTimeSubscription(userId);
 
@@ -95,9 +94,6 @@ const initBot = function () {
               `Добро пожаловать! Выберите необходимое действие в меню`
             );
         }
-
-        // console.log(await db.getTimeSubscription(2));
-        // await bot.sendMessage(msg.chat.id, m);
       } else if (msg.text == "/subscribe") {
         await bot.sendMessage(
           msg.chat.id,
@@ -120,7 +116,43 @@ const initBot = function () {
       } else if (msg.text == "/unsubscribe") {
         await bot.sendMessage(msg.chat.id, "Отмена подписки");
       } else if (msg.text == "/history") {
-        await bot.sendMessage(msg.chat.id, "History");
+        const historySource = await db.getPaymentsHistory(userId);
+
+        // const history = historySource.map((item) => {
+        //   Object.assign(item, { Окончание_подписки: item["time_sub"] });
+        //   delete item["time_sub"];
+        //   return item;
+        // });
+
+        const history = historySource.map((item) => ({
+          ...item,
+          time_sub: parseTimestampToHumanDate(item.time_sub),
+          payment_date: parseTimestampToHumanDate(item.payment_date),
+        }));
+
+        console.log(history);
+
+        const fileName = "report-" + userId + "-" + Date.now() + ".pdf";
+        const location = "./output/";
+
+        if (!fs.existsSync(location)) fs.mkdirSync(location);
+
+        createPDFReport(history, location + fileName);
+
+        const fileOpts = {
+          file: "Buffer",
+          filename: fileName,
+          contentType: "application/pdf",
+        };
+
+        const file = await fs.promises.readFile(location + fileName);
+
+        await bot.sendDocument(msg.chat.id, file, fileOpts, {
+          filename: fileName,
+          contentType: "application/pdf",
+        });
+
+        await fs.promises.unlink(location + fileName);
       }
     } catch (error) {
       console.log(error);
@@ -154,7 +186,6 @@ const initBot = function () {
               confirmation: {
                 type: "redirect",
                 return_url: `http://localhost/return_url`,
-                // return_url: "https://www.merchant-website.com/return_url"
               },
               metadata: {
                 user_id: ctx.from.id,
@@ -236,15 +267,7 @@ const initBot = function () {
               savedPayment.created_at
             );
 
-            await db.updatePaymentHistory(
-              userId
-              // ctx.from.username,
-              // fullname,
-              // timeSub,
-              // paymentId,
-              // cardNumbers,
-              // savedPayment.status
-            );
+            await db.updatePaymentHistory(userId);
           } else
             await bot.sendMessage(
               ctx.message.chat.id,

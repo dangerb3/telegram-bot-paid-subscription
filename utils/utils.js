@@ -23,6 +23,81 @@ export const getSubscriptionRemainingTime = (timeSub) => {
   else return dateTimeToHumanFormat(differenceTime);
 };
 
+export const parseTimestampToHumanDate = (timeSub) => {
+  return new Date(timeSub).toLocaleString();
+};
+
 export const timeout = (ms) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+export const parseTableHistory = (items) => {
+  const columnWidth = 20; // How wide each column should be
+
+  const keys = Object.keys(items[0]); // Use the keys of our first item to use as column headers
+
+  const headerRow = `| ${keys
+    .map((key) => key.substring(0, columnWidth).padEnd(columnWidth))
+    .join(" | ")} |`; // Build our header row with pipes to separate columns
+  const separatorRow = headerRow.replace(/[^|]/g, "-"); // Add a line below our header row
+
+  let rows = [headerRow, separatorRow]; // Start collecting our rows
+
+  for (const item of items) {
+    // Now let's look at each item
+    let row = [];
+    for (const key of keys) {
+      row.push(
+        item[key].toString().substring(0, columnWidth).padEnd(columnWidth)
+      ); // Add each value with the correct length
+    }
+    rows.push(
+      `| ${row
+        .map((entry) => entry.substring(0, columnWidth).padEnd(columnWidth))
+        .join(" | ")} |`
+    ); // Store the complete row
+  }
+
+  return "<pre>\n" + rows.join("\n") + "\n</pre>";
+};
+
+import { jsPDF } from "jspdf";
+import _ from "lodash";
+
+export const createPDFReport = (sourceData, fileName) => {
+  function convertValuesToStringsDeep(obj) {
+    return _.cloneDeepWith(obj, (value) => {
+      return !_.isPlainObject(value) ? _.toString(value) : undefined;
+    });
+  }
+
+  const data = sourceData.map((item) => convertValuesToStringsDeep(item));
+
+  function createHeaders(keys) {
+    let result = [];
+
+    for (var i = 0; i < keys.length; i += 1) {
+      result.push({
+        id: keys[i],
+        name: keys[i],
+        prompt: keys[i],
+        width: 65,
+        align: "center",
+        padding: 0,
+      });
+    }
+    return result;
+  }
+
+  let headers = createHeaders(Object.keys(data[0]).map((s) => s.toString()));
+
+  let doc = new jsPDF({
+    putOnlyUsedFonts: true,
+    orientation: "l", // landscape
+  });
+
+  doc.table(10, 10, data, headers, { autoSize: true });
+  doc.save(fileName);
+
+  return doc;
 };
