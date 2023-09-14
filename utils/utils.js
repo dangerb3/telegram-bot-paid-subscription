@@ -62,7 +62,56 @@ export const parseTableHistory = (items) => {
 };
 
 import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+
 import _ from "lodash";
+
+export const createPDFReportAutoTable = (sourceData, fileName) => {
+  function convertValuesToStringsDeep(obj) {
+    return _.cloneDeepWith(obj, (value) => {
+      return !_.isPlainObject(value) ? _.toString(value) : undefined;
+    });
+  }
+
+  const data = sourceData.map((item) => convertValuesToStringsDeep(item));
+
+  function createHeaders(keys) {
+    let result = [];
+
+    for (var i = 0; i < keys.length; i += 1) {
+      result.push({
+        id: keys[i],
+        name: keys[i],
+        prompt: keys[i],
+        width: 65,
+        align: "center",
+        padding: 0,
+      });
+    }
+    return result;
+  }
+
+  let headers = createHeaders(Object.keys(data[0]).map((s) => s.toString()));
+
+  let doc = new jsPDF({
+    putOnlyUsedFonts: true,
+    orientation: "l", // landscape
+  });
+
+  // autoTable(doc, {
+  //   head: headers,
+  //   body: data,
+  // });
+
+  doc.autoTable({
+    head: [Object.keys(data[0])],
+    body: data.map((item) => Object.values(item)),
+  });
+  // doc.table(10, 10, data, headers, { autoSize: true });
+  doc.save(fileName);
+
+  return doc;
+};
 
 export const createPDFReport = (sourceData, fileName) => {
   function convertValuesToStringsDeep(obj) {

@@ -26,6 +26,7 @@
   "packageManager": "yarn@3.6.3",
   "devDependencies": {
     "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.6.0",
     "lodash": "^4.17.21"
   }
 }
