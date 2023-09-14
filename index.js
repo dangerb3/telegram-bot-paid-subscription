@@ -328,9 +328,49 @@ const initBot = function () {
           payment_date: parseTimestampToHumanDate(item.payment_date),
         }));
 
-        console.log(history);
-
         const fileName = "full-payments-report-" + Date.now() + ".pdf";
+        const location = "./output/";
+
+        if (!fs.existsSync(location)) fs.mkdirSync(location);
+
+        createPDFReportAutoTable(history, location + fileName);
+
+        const fileOpts = {
+          file: "Buffer",
+          filename: fileName,
+          contentType: "application/pdf",
+        };
+
+        const file = await fs.promises.readFile(location + fileName);
+
+        await bot.sendDocument(msg.chat.id, file, fileOpts, {
+          filename: fileName,
+          contentType: "application/pdf",
+        });
+
+        await fs.promises.unlink(location + fileName);
+      }
+
+      if (
+        msg.text === "Экспортировать статус подписок всех пользователей" &&
+        checkIsAdmin(username)
+      ) {
+        const historySource = await db.getAllUsersSubscriptionStatus();
+
+        // const history = historySource.map((item) => {
+        //   Object.assign(item, { Окончание_подписки: item["time_sub"] });
+        //   delete item["time_sub"];
+        //   return item;
+        // });
+
+        const history = historySource.map((item) => ({
+          ...item,
+          time_sub: parseTimestampToHumanDate(item.time_sub),
+          payment_date: parseTimestampToHumanDate(item.payment_date),
+        }));
+
+        const fileName =
+          "full-users-subscriptions-report-" + Date.now() + ".pdf";
         const location = "./output/";
 
         if (!fs.existsSync(location)) fs.mkdirSync(location);

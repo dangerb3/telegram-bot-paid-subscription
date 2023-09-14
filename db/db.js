@@ -198,6 +198,24 @@ const database = {
     });
   },
 
+  getAllUsersSubscriptionStatus() {
+    return new Promise((resolve, reject) => {
+      openDb();
+
+      db.serialize(() => {
+        db.all(`SELECT * FROM users`, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row);
+          }
+
+          closeDb();
+        });
+      });
+    });
+  },
+
   // subscribeUser(subscription, chatID) {
   //   return new Promise((resolve, reject) => {
   //     openDb();
