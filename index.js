@@ -15,29 +15,33 @@ import {
 import axios from "axios";
 import YooKassa from "yookassa";
 
+import configManager from "./utils/configManager.js";
+
 // process.env.NTBA_FIX_319 = 1;
 // process.env.NTBA_FIX_350 = 0;
 
 import dotenv from "dotenv";
 dotenv.config();
 
-const port = process.env.PORT || 3000;
+const port = configManager.getConfig().PORT || 3000;
 const expressApp = express();
 const __dirname = path.resolve();
 
 expressApp.use(express.static("static"));
 expressApp.use(express.json());
 
-const attemptCounts = Array.from(Array(300).keys());
+const attemptCounts = Array.from(
+  Array(Number(configManager.getConfig().ATTEMPT_WAIT_PAYMENT_COUNTS)).keys()
+);
 
 // const idempotencyKey = uuidv4();
 
 const yooKassa = new YooKassa({
-  shopId: process.env.SHOP_ID,
-  secretKey: process.env.SHOP_SECRET_KEY,
+  shopId: configManager.getConfig().SHOP_ID,
+  secretKey: configManager.getConfig().SHOP_SECRET_KEY,
 });
 
-const bot = new TelegramBot(process.env.API_KEY_BOT, {
+const bot = new TelegramBot(configManager.getConfig().API_KEY_BOT, {
   polling: true,
 });
 
@@ -59,7 +63,7 @@ const initApp = function (/* bdSubs */) {
 };
 
 const checkIsAdmin = (username) => {
-  return username === process.env.ADMIN_TG_ACCOUNT_USERNAME;
+  return username === configManager.getConfig().ADMIN_TG_ACCOUNT_USERNAME;
 };
 
 const initBot = function () {
@@ -76,9 +80,11 @@ const initBot = function () {
   ];
 
   const adminCommands = [
+    ["Текущая стоимость подписки"],
     ["Изменить стоимость подписки"],
     ["Экспортировать платежную историю всех пользователей"],
     ["Экспортировать статус подписок всех пользователей"],
+    ["Экспортировать пользователей с неоплаченной подпиской"],
   ];
 
   // bot.setMyCommands(commands);
@@ -90,6 +96,8 @@ const initBot = function () {
       const userNickname = await db.getUserNickname(userId);
 
       if (msg.text === "/start") {
+        await db.addNewUserChat(userId, msg.chat.id);
+
         if (checkIsAdmin(username)) {
           await bot.sendMessage(msg.chat.id, "Добро пожаловать, администратор");
 
@@ -136,31 +144,12 @@ const initBot = function () {
         }
       }
       if (msg.text === "Оформить подписку") {
-        // await bot.sendMessage(
-        //   msg.chat.id,
-        //   "Подписка *Описание возможностей подписки*",
-        //   {
-        //     reply_markup: {
-        //       inline_keyboard: [
-        //         [
-        //           {
-        //             text: "Подписаться",
-        //             callback_data: "start_subscription_process",
-        //           },
-        //         ],
-        //         [{ text: "Закрыть Меню", callback_data: "closeMenu" }],
-        //       ],
-        //     },
-        //     reply_to_message_id: msg.message_id,
-        //   }
-        // );
-
         await bot.deleteMessage(msg.chat.id, msg.message_id);
 
         const payment = await yooKassa.createPayment(
           {
             amount: {
-              value: "100.00",
+              value: configManager.getConfig().SUB_PRICE,
               currency: "RUB",
             },
             payment_method_data: {
@@ -176,14 +165,20 @@ const initBot = function () {
             },
             capture: true,
             save_payment_method: true,
-            description: "Оформление подписки, 100 рублей",
+            description: `Оформление подписки, ${
+              configManager.getConfig().SUB_PRICE
+            } рублей`,
           },
           Math.floor(Math.random() * 100000000) + 1
         );
 
         await bot.sendMessage(
           msg.chat.id,
-          "Доступна оплата по ссылке:\n" + payment.confirmationUrl
+          `Стоимость подписки на ${
+            configManager.getConfig().SUB_PERIOD
+          } дней составляет ${
+            configManager.getConfig().SUB_PRICE
+          } рублей.\nОплата доступна по ссылке:\n ${payment.confirmationUrl}`
         );
 
         await bot.sendMessage(msg.chat.id, "Ожидание оплаты ...");
@@ -192,28 +187,29 @@ const initBot = function () {
         let savedPayment;
 
         for (const attempt of attemptCounts) {
-          const paymentInfo = await yooKassa.getPayment(payment.id);
-          if (paymentInfo.isSucceeded) {
+          savedPayment = await yooKassa.getPayment(payment.id);
+
+          if (savedPayment.isSucceeded) {
             status = "succeed";
-            savedPayment = paymentInfo;
             break;
-          } else if (paymentInfo.isWaitingForCapture) {
+          } else if (savedPayment.isWaitingForCapture) {
             status = "waitingForCapture";
-            savedPayment = paymentInfo;
             break;
           }
+
           console.count(
             `Waiting payment from user ${msg.from.id} (@${msg.from.username})`
           );
+
           await timeout(3000);
         }
 
-        const isCardSaved = savedPayment.payment_method.saved;
-        const getCardSavedStatus = isCardSaved
-          ? "Автоплатежи активны"
-          : "Автоплатежи не активны";
-
         if (status === "succeed" || status === "waitingForCapture") {
+          const isCardSaved = savedPayment.payment_method.saved;
+          const getCardSavedStatus = isCardSaved
+            ? "Автоплатежи активны"
+            : "Автоплатежи не активны";
+
           if (status === "succeed")
             await bot.sendMessage(
               msg.chat.id,
@@ -253,12 +249,38 @@ const initBot = function () {
           );
 
           await db.updatePaymentHistory(userId);
-        } else
+        } else {
+          const userNickname = await db.getUserNickname(userId);
+          const fullname = msg.from.first_name + (msg.from.last_name ?? "");
+
+          const date = new Date();
+          const timeSub = date.setDate(date.getDate() + 30.44);
+
+          const cardNumbers =
+            (savedPayment?.payment_method?.card?.first6 || 0) +
+            "," +
+            (savedPayment?.payment_method?.card?.last4 || 0);
+
+          if (!userNickname)
+            await db.addNewUser(userId, msg.from.username, fullname);
+
+          await db.setSubscription(
+            userId,
+            timeSub,
+            savedPayment.id,
+            cardNumbers,
+            savedPayment.status,
+            savedPayment.created_at
+          );
+
+          await db.updatePaymentHistory(userId);
+
           await bot.sendMessage(
             msg.chat.id,
-            "Произошла ошибка при оплате. Обратитесь к администратору.\n id платежа: " +
-              payment.id
+            "Произошла ошибка при оплате. Обратитесь к администратору или попробуйте ещё раз.\nid платежа: " +
+              savedPayment.id
           );
+        }
       }
       if (msg.text === "Прервать подписку") {
         await bot.sendMessage(msg.chat.id, "Отмена подписки");
@@ -301,13 +323,6 @@ const initBot = function () {
         });
 
         await fs.promises.unlink(location + fileName);
-      }
-
-      if (
-        msg.text === "Изменить стоимость подписки" &&
-        checkIsAdmin(username)
-      ) {
-        await bot.sendMessage(msg.chat.id, "Изменить стоимость подписки");
       }
 
       if (
@@ -371,6 +386,80 @@ const initBot = function () {
 
         const fileName =
           "full-users-subscriptions-report-" + Date.now() + ".pdf";
+        const location = "./output/";
+
+        if (!fs.existsSync(location)) fs.mkdirSync(location);
+
+        createPDFReportAutoTable(history, location + fileName);
+
+        const fileOpts = {
+          file: "Buffer",
+          filename: fileName,
+          contentType: "application/pdf",
+        };
+
+        const file = await fs.promises.readFile(location + fileName);
+
+        await bot.sendDocument(msg.chat.id, file, fileOpts, {
+          filename: fileName,
+          contentType: "application/pdf",
+        });
+
+        await fs.promises.unlink(location + fileName);
+      }
+
+      if (msg.text === "Текущая стоимость подписки" && checkIsAdmin(username)) {
+        await bot.sendMessage(msg.chat.id, configManager.getConfig().SUB_PRICE);
+      }
+      if (
+        msg.text === "Изменить стоимость подписки" &&
+        checkIsAdmin(username)
+      ) {
+        await bot.sendMessage(
+          msg.chat.id,
+          "Введите новую стоимость подписки, к примеру: 100.00"
+        );
+
+        await bot.once("text", async (reply) => {
+          const userReply = reply.text;
+
+          configManager.updateConfig({ SUB_PRICE: userReply });
+
+          console.log("SUB_PRICE changed to ", userReply);
+
+          await bot.sendMessage(
+            msg.chat.id,
+            `Стоимость подписки установлена: ${userReply}`
+          );
+
+          const usersChatsSource = await db.getAllUsersChats();
+
+          const allChats = usersChatsSource.map((item) => item?.chat_id);
+          for (const chat of allChats) {
+            await bot.sendMessage(
+              chat,
+              `Внимание! Стоимость подписки изменена и равна: ${userReply} рублей`
+            );
+          }
+        });
+      }
+
+      if (
+        msg.text === "Экспортировать пользователей с неоплаченной подпиской" &&
+        checkIsAdmin(username)
+      ) {
+        const historySource = await db.getAllUsersWithBadSubscriptionStatus();
+
+        const history = historySource.map((item) => ({
+          ...item,
+          // time_sub: parseTimestampToHumanDate(item.time_sub),
+          payment_date: parseTimestampToHumanDate(item.payment_date),
+        }));
+
+        const fileName =
+          "bad-subscription-status-users-subscriptions-report-" +
+          Date.now() +
+          ".pdf";
         const location = "./output/";
 
         if (!fs.existsSync(location)) fs.mkdirSync(location);
@@ -520,7 +609,7 @@ const initBot = function () {
   //         //   "Подписка на магазин", // Заголовок счета
   //         //   "Оформление подписки, 100 рублей", // Описание
   //         //   "month_sub", // TODO: сделать уникальным. Payload - используем для того, чтобы отследить платеж, пользователю не отображается
-  //         //   process.env.PAYMENT_TOKEN,
+  //         //   configManager.getConfig().PAYMENT_TOKEN,
   //         //   "RUB",
   //         //   [
   //         //     {

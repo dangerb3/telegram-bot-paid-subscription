@@ -7,6 +7,9 @@ const columns =
   "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT, time_sub INTEGER, payment_code TEXT, card_numbers TEXT, payment_status TEXT, payment_date TEXT)";
 const CREATE_USERS_TABLE = "CREATE TABLE IF NOT EXISTS users " + columns;
 const CREATE_PAYMENTS_TABLE = "CREATE TABLE IF NOT EXISTS payments " + columns;
+const CREATE_USERS_CHAT_TABLE =
+  "CREATE TABLE IF NOT EXISTS users_chats " +
+  "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, chat_id INTEGER NOT NULL, UNIQUE(user_id, chat_id))";
 
 const SELECT_USERS = "SELECT * FROM users";
 const INSERT = "INSERT INTO users VALUES (?,?,?,?,?)";
@@ -26,31 +29,28 @@ const database = {
       openDb();
 
       db.serialize(() => {
-        db.run(CREATE_USERS_TABLE);
-        db.run(CREATE_PAYMENTS_TABLE);
+        try {
+          db.run(CREATE_USERS_TABLE);
+          db.run(CREATE_PAYMENTS_TABLE);
+          db.run(CREATE_USERS_CHAT_TABLE);
 
-        db.all(SELECT_USERS, (err, arrayRows) => {
-          console.log(arrayRows);
-          if (err) {
-            reject();
-          } else {
-            resolve(arrayRows);
-          }
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
 
-          closeDb();
-        });
+        closeDb();
       });
     });
   },
 
   addNewUser(userId, nickname, fullname) {
-    console.log("add new user");
     return new Promise((resolve, reject) => {
       openDb();
 
       db.serialize(() => {
         try {
-          var stmt = db.prepare(
+          let stmt = db.prepare(
             `INSERT INTO users (user_id, nickname, fullname) VALUES (?,?,?)`
           );
           stmt.run(userId, nickname, fullname);
@@ -204,6 +204,66 @@ const database = {
 
       db.serialize(() => {
         db.all(`SELECT * FROM users`, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row);
+          }
+
+          closeDb();
+        });
+      });
+    });
+  },
+
+  getAllUsersWithBadSubscriptionStatus() {
+    return new Promise((resolve, reject) => {
+      openDb();
+
+      db.serialize(() => {
+        db.all(
+          `SELECT * FROM users WHERE payment_status!='succeeded'`,
+          (err, row) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(row);
+            }
+
+            closeDb();
+          }
+        );
+      });
+    });
+  },
+
+  addNewUserChat(userId, chatId) {
+    return new Promise((resolve, reject) => {
+      openDb();
+
+      db.serialize(() => {
+        try {
+          let stmt = db.prepare(
+            `INSERT OR IGNORE INTO users_chats (user_id, chat_id) VALUES (?,?)`
+          );
+          stmt.run(userId, chatId);
+          stmt.finalize();
+          resolve();
+        } catch (e) {
+          reject();
+        }
+
+        closeDb();
+      });
+    });
+  },
+
+  getAllUsersChats() {
+    return new Promise((resolve, reject) => {
+      openDb();
+
+      db.serialize(() => {
+        db.all(`SELECT * FROM users_chats`, (err, row) => {
           if (err) {
             reject(err);
           } else {
