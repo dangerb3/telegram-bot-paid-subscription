@@ -9,7 +9,7 @@ const CREATE_USERS_TABLE = "CREATE TABLE IF NOT EXISTS users " + columns;
 const CREATE_PAYMENTS_TABLE = "CREATE TABLE IF NOT EXISTS payments " + columns;
 const CREATE_USERS_CHAT_TABLE =
   "CREATE TABLE IF NOT EXISTS users_chats " +
-  "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, chat_id INTEGER NOT NULL, UNIQUE(user_id, chat_id))";
+  "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, chat_id INTEGER NOT NULL, UNIQUE(user_id, chat_id))";
 
 const SELECT_USERS = "SELECT * FROM users";
 const INSERT = "INSERT INTO users VALUES (?,?,?,?,?)";
@@ -237,16 +237,16 @@ const database = {
     });
   },
 
-  addNewUserChat(userId, chatId) {
+  addNewUserChat(userId, username, chatId) {
     return new Promise((resolve, reject) => {
       openDb();
 
       db.serialize(() => {
         try {
           let stmt = db.prepare(
-            `INSERT OR IGNORE INTO users_chats (user_id, chat_id) VALUES (?,?)`
+            `INSERT OR IGNORE INTO users_chats (user_id, nickname, chat_id) VALUES (?,?,?)`
           );
-          stmt.run(userId, chatId);
+          stmt.run(userId, username, chatId);
           stmt.finalize();
           resolve();
         } catch (e) {
@@ -272,6 +272,27 @@ const database = {
 
           closeDb();
         });
+      });
+    });
+  },
+
+  getUserChatByUserId(userId) {
+    return new Promise((resolve, reject) => {
+      openDb();
+
+      db.serialize(() => {
+        db.get(
+          `SELECT chat_id FROM users_chats WHERE user_id=${userId}`,
+          (err, row) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(row.chat_id);
+            }
+
+            closeDb();
+          }
+        );
       });
     });
   },
