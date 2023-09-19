@@ -59,8 +59,11 @@ const job = new CronJob(
       users.forEach(async (user) => {
         if (
           !getSubscriptionStatus(user.time_sub) &&
-          user.payment_status !== "cancelledByUser"
+          user.payment_status !== "cancelledByUser" &&
+          !user.payment_status.includes("error: ")
         ) {
+          const targetChatId = await db.getUserChatByUserId(user.user_id);
+
           try {
             console.log(
               "Autopayment started for: @" +
@@ -87,8 +90,6 @@ const job = new CronJob(
               },
               Math.floor(Math.random() * 100000000) + 1
             );
-
-            const targetChatId = await db.getUserChatByUserId(user.user_id);
 
             await bot.sendMessage(
               targetChatId,
@@ -172,6 +173,11 @@ const job = new CronJob(
           } catch (e) {
             console.log("Error: " + e);
 
+            await bot.sendMessage(
+              targetChatId,
+              "Произошла ошибка при оплате месячной подписки. Обратитесь к администратору."
+            );
+
             await db.setSubscription(
               user.user_id,
               0,
@@ -193,12 +199,7 @@ job.start();
 
 console.log("Bot server is working ...");
 
-const initApp = function (/* bdSubs */) {
-  // // Iterate subscriptions, keep references in memory and start its cronjob for
-  // notification for ( let i = 0, len = bdSubs.length; i < len; i++ ) {
-  // subscriptions.add( bdSubs[ i ] );     crontab.start( bdSubs[ i ], bdSubs[ i
-  // ].chatId, checkWeather ); } Once each subscription has its cronjob,
-  // initialize Telegram bot
+const initApp = function () {
   initBot();
 };
 
@@ -210,10 +211,6 @@ const checkIsAdmin = (username) => {
 };
 
 const initBot = function () {
-  // const commands = [   { command: "subscribe", description: "Оформить подписку"
-  // },   { command: "unsubscribe", description: "Прервать подписку" },   {
-  // command: "history", description: "История списаний" }, ];
-
   const commands = [
     ["Оформить подписку"],
     ["Прервать подписку"],
@@ -227,8 +224,6 @@ const initBot = function () {
     ["Экспортировать статус подписок всех пользователей"],
     ["Экспортировать пользователей с неоплаченной подпиской"],
   ];
-
-  // bot.setMyCommands(commands);
 
   bot.on("text", async (msg) => {
     try {

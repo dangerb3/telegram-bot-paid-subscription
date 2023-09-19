@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "clean_code": "jscpd index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "dangerb3",
@@ -24,6 +25,7 @@
   },
   "packageManager": "yarn@3.6.3",
   "devDependencies": {
+    "jscpd": "^3.5.10",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.6.0",
     "lodash": "^4.17.21"
