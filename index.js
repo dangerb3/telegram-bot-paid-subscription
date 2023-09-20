@@ -186,7 +186,7 @@ const job = new CronJob(
               0,
               user.card_numbers,
               "error: " + e,
-              new Date()
+              new Date().toISOString()
             );
             await db.updatePaymentHistory(user.user_id);
           }
@@ -635,8 +635,7 @@ const initBot = function () {
         const history = historySource.map((item) => ({
           ...item,
           // time_sub: parseTimestampToHumanDate(item.time_sub),
-          // payment_date: parseTimestampToHumanDate(item.payment_date),
-          payment_date: item.payment_date,
+          payment_date: parseTimestampToHumanDate(item.payment_date),
         }));
 
         const fileName =
