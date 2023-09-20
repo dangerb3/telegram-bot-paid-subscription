@@ -54,7 +54,6 @@ const job = new CronJob(
       console.log("Cron Task executing ...");
 
       const users = await db.getAllUsersSubscriptionStatus();
-      // console.log(users);
 
       users.forEach(async (user) => {
         if (
@@ -122,11 +121,12 @@ const job = new CronJob(
                 // TODO: cover case, set timeSub when payment succeed
                 await bot.sendMessage(
                   targetChatId,
-                  "Автоплатеж по подписке прошел успешно.\n Транзакция ожидает подтверждения продав" +
-                    "ца."
+                  "Автоплатеж по подписке прошел успешно.\n Транзакция ожидает подтверждения продавца."
                 );
               const date = new Date();
-              const timeSub = date.setDate(date.getDate() + 30.44);
+              const timeSub = date.setDate(
+                date.getDate() + configManager.getConfig().SUB_PERIOD_DAYS
+              );
               // const userId = savedPayment.metadata.user_id; const fullname =
               // msg.from.first_name + (msg.from.last_name ?? "");
               const paymentId = savedPayment.id;
@@ -149,7 +149,9 @@ const job = new CronJob(
               // const userNickname = await db.getUserNickname(user.user_id); const fullname =
               // msg.from.first_name + (msg.from.last_name ?? "");
               const date = new Date();
-              const timeSub = date.setDate(date.getDate() + 30.44);
+              const timeSub = date.setDate(
+                date.getDate() + configManager.getConfig().SUB_PERIOD_DAYS
+              );
               const cardNumbers =
                 (savedPayment?.payment_method?.card?.first6 || 0) +
                 "," +
@@ -184,7 +186,7 @@ const job = new CronJob(
               0,
               user.card_numbers,
               "error: " + e,
-              parseTimestampToHumanDate(new Date())
+              new Date()
             );
             await db.updatePaymentHistory(user.user_id);
           }
@@ -219,7 +221,9 @@ const initBot = function () {
 
   const adminCommands = [
     ["Текущая стоимость подписки"],
+    ["Текущий период оплаты"],
     ["Изменить стоимость подписки"],
+    ["Изменить период оплаты"],
     ["Экспортировать платежную историю всех пользователей"],
     ["Экспортировать статус подписок всех пользователей"],
     ["Экспортировать пользователей с неоплаченной подпиской"],
@@ -293,7 +297,7 @@ const initBot = function () {
             },
             confirmation: {
               type: "redirect",
-              return_url: `http://localhost/return_url`,
+              return_url: configManager.getConfig().BOT_LINK,
             },
             metadata: {
               user_id: msg.from.id,
@@ -360,7 +364,9 @@ const initBot = function () {
             );
 
           const date = new Date();
-          const timeSub = date.setDate(date.getDate() + 30.44);
+          const timeSub = date.setDate(
+            date.getDate() + configManager.getConfig().SUB_PERIOD_DAYS
+          );
 
           const userId = savedPayment.metadata.user_id;
           const fullname = msg.from.first_name + (msg.from.last_name ?? "");
@@ -390,7 +396,9 @@ const initBot = function () {
           const fullname = msg.from.first_name + (msg.from.last_name ?? "");
 
           const date = new Date();
-          const timeSub = date.setDate(date.getDate() + 30.44);
+          const timeSub = date.setDate(
+            date.getDate() + configManager.getConfig().SUB_PERIOD_DAYS
+          );
 
           const cardNumbers =
             (savedPayment?.payment_method?.card?.first6 || 0) +
@@ -474,6 +482,7 @@ const initBot = function () {
         await fs.promises.unlink(location + fileName);
       }
 
+      // Admin commands
       if (
         msg.text === "Экспортировать платежную историю всех пользователей" &&
         checkIsAdmin(username)
@@ -556,6 +565,12 @@ const initBot = function () {
       if (msg.text === "Текущая стоимость подписки" && checkIsAdmin(username)) {
         await bot.sendMessage(msg.chat.id, configManager.getConfig().SUB_PRICE);
       }
+      if (msg.text === "Текущий период оплаты" && checkIsAdmin(username)) {
+        await bot.sendMessage(
+          msg.chat.id,
+          configManager.getConfig().SUB_PERIOD_DAYS
+        );
+      }
       if (
         msg.text === "Изменить стоимость подписки" &&
         checkIsAdmin(username)
@@ -570,7 +585,7 @@ const initBot = function () {
 
           configManager.updateConfig({ SUB_PRICE: userReply });
 
-          console.log("SUB_PRICE changed to ", userReply);
+          console.log(`ADMIN (${username}): SUB_PRICE changed to ${userReply}`);
 
           await bot.sendMessage(
             msg.chat.id,
@@ -586,6 +601,28 @@ const initBot = function () {
               `Внимание! Стоимость подписки изменена и равна: ${userReply} рублей`
             );
           }
+        });
+      }
+
+      if (msg.text === "Изменить период оплаты" && checkIsAdmin(username)) {
+        await bot.sendMessage(
+          msg.chat.id,
+          "Введите новое значение периода оплаты, к примеру: 30.44"
+        );
+
+        await bot.once("text", async (reply) => {
+          const userReply = reply.text;
+
+          configManager.updateConfig({ SUB_PERIOD_DAYS: userReply });
+
+          console.log(
+            `ADMIN (${username}): SUB_PERIOD_DAYS changed to ${userReply}`
+          );
+
+          await bot.sendMessage(
+            msg.chat.id,
+            `Период оплаты изменен: ${userReply} дней`
+          );
         });
       }
 
