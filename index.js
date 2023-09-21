@@ -1,5 +1,4 @@
 import TelegramBot from "node-telegram-bot-api";
-import fs from "fs";
 import { CronJob } from "cron";
 import path from "path";
 import express from "express";
@@ -10,6 +9,7 @@ import {
   createPDFReportAutoTable,
   parseTimestampToHumanDate,
   getSubscriptionStatus,
+  sendHistoryFile,
 } from "./utils/utils.js";
 import YooKassa from "yookassa";
 
@@ -134,7 +134,7 @@ const job = new CronJob(
                 savedPayment.payment_method.card.first6 +
                 "," +
                 savedPayment.payment_method.card.last4;
-              const userNickname = await db.getUserNickname(user.user_id);
+              // const userNickname = await db.getUserNickname(user.user_id);
 
               await db.setSubscription(
                 user.user_id,
@@ -315,7 +315,7 @@ const initBot = function () {
         await bot.sendMessage(
           msg.chat.id,
           `Стоимость подписки на ${
-            configManager.getConfig().SUB_PERIOD
+            configManager.getConfig().SUB_PERIOD_DAYS
           } дней составляет ${
             configManager.getConfig().SUB_PRICE
           } рублей.\nОплата доступна по ссылке:\n ${payment.confirmationUrl}`
@@ -434,7 +434,7 @@ const initBot = function () {
           0,
           0,
           "cancelledByUser",
-          parseTimestampToHumanDate(new Date())
+          new Date().toISOString()
         );
         await bot.sendMessage(msg.chat.id, "Подписка успешно отменена");
 
@@ -451,35 +451,14 @@ const initBot = function () {
       if (msg.text === "История списаний") {
         const historySource = await db.getPaymentsHistory(userId);
 
-        const history = historySource.map((item) => ({
-          ...item,
-          time_sub: parseTimestampToHumanDate(item.time_sub),
-          payment_date: parseTimestampToHumanDate(item.payment_date),
-        }));
-
-        console.log(history);
-
-        const fileName = "report-" + userId + "-" + Date.now() + ".pdf";
-        const location = "./output/";
-
-        if (!fs.existsSync(location)) fs.mkdirSync(location);
-
-        createPDFReportAutoTable(history, location + fileName);
-
-        const fileOpts = {
-          file: "Buffer",
-          filename: fileName,
-          contentType: "application/pdf",
-        };
-
-        const file = await fs.promises.readFile(location + fileName);
-
-        await bot.sendDocument(msg.chat.id, file, fileOpts, {
-          filename: fileName,
-          contentType: "application/pdf",
-        });
-
-        await fs.promises.unlink(location + fileName);
+        await sendHistoryFile(
+          historySource,
+          configManager.getConfig().OUTPUT_FOLDER,
+          "report-" + userId + "-" + Date.now() + ".pdf",
+          bot,
+          msg.chat.id,
+          "История списаний пуста"
+        );
       }
 
       // Admin commands
@@ -489,37 +468,14 @@ const initBot = function () {
       ) {
         const historySource = await db.getAllUsersPaymentsHistory();
 
-        // const history = historySource.map((item) => {   Object.assign(item, {
-        // Окончание_подписки: item["time_sub"] });   delete item["time_sub"];   return
-        // item; });
-
-        const history = historySource.map((item) => ({
-          ...item,
-          time_sub: parseTimestampToHumanDate(item.time_sub),
-          payment_date: parseTimestampToHumanDate(item.payment_date),
-        }));
-
-        const fileName = "full-payments-report-" + Date.now() + ".pdf";
-        const location = "./output/";
-
-        if (!fs.existsSync(location)) fs.mkdirSync(location);
-
-        createPDFReportAutoTable(history, location + fileName);
-
-        const fileOpts = {
-          file: "Buffer",
-          filename: fileName,
-          contentType: "application/pdf",
-        };
-
-        const file = await fs.promises.readFile(location + fileName);
-
-        await bot.sendDocument(msg.chat.id, file, fileOpts, {
-          filename: fileName,
-          contentType: "application/pdf",
-        });
-
-        await fs.promises.unlink(location + fileName);
+        await sendHistoryFile(
+          historySource,
+          configManager.getConfig().OUTPUT_FOLDER,
+          "full-payments-report-" + Date.now() + ".pdf",
+          bot,
+          msg.chat.id,
+          "Платежная история пуста"
+        );
       }
 
       if (
@@ -528,38 +484,14 @@ const initBot = function () {
       ) {
         const historySource = await db.getAllUsersSubscriptionStatus();
 
-        // const history = historySource.map((item) => {   Object.assign(item, {
-        // Окончание_подписки: item["time_sub"] });   delete item["time_sub"];   return
-        // item; });
-
-        const history = historySource.map((item) => ({
-          ...item,
-          time_sub: parseTimestampToHumanDate(item.time_sub),
-          payment_date: parseTimestampToHumanDate(item.payment_date),
-        }));
-
-        const fileName =
-          "full-users-subscriptions-report-" + Date.now() + ".pdf";
-        const location = "./output/";
-
-        if (!fs.existsSync(location)) fs.mkdirSync(location);
-
-        createPDFReportAutoTable(history, location + fileName);
-
-        const fileOpts = {
-          file: "Buffer",
-          filename: fileName,
-          contentType: "application/pdf",
-        };
-
-        const file = await fs.promises.readFile(location + fileName);
-
-        await bot.sendDocument(msg.chat.id, file, fileOpts, {
-          filename: fileName,
-          contentType: "application/pdf",
-        });
-
-        await fs.promises.unlink(location + fileName);
+        await sendHistoryFile(
+          historySource,
+          configManager.getConfig().OUTPUT_FOLDER,
+          "full-users-subscriptions-report-" + Date.now() + ".pdf",
+          bot,
+          msg.chat.id,
+          "Статус подписок пуст"
+        );
       }
 
       if (msg.text === "Текущая стоимость подписки" && checkIsAdmin(username)) {
@@ -632,36 +564,16 @@ const initBot = function () {
       ) {
         const historySource = await db.getAllUsersWithBadSubscriptionStatus();
 
-        const history = historySource.map((item) => ({
-          ...item,
-          // time_sub: parseTimestampToHumanDate(item.time_sub),
-          payment_date: parseTimestampToHumanDate(item.payment_date),
-        }));
-
-        const fileName =
+        await sendHistoryFile(
+          historySource,
+          configManager.getConfig().OUTPUT_FOLDER,
           "bad-subscription-status-users-subscriptions-report-" +
-          Date.now() +
-          ".pdf";
-        const location = "./output/";
-
-        if (!fs.existsSync(location)) fs.mkdirSync(location);
-
-        createPDFReportAutoTable(history, location + fileName);
-
-        const fileOpts = {
-          file: "Buffer",
-          filename: fileName,
-          contentType: "application/pdf",
-        };
-
-        const file = await fs.promises.readFile(location + fileName);
-
-        await bot.sendDocument(msg.chat.id, file, fileOpts, {
-          filename: fileName,
-          contentType: "application/pdf",
-        });
-
-        await fs.promises.unlink(location + fileName);
+            Date.now() +
+            ".pdf",
+          bot,
+          msg.chat.id,
+          "Список пуст"
+        );
       }
     } catch (error) {
       console.log(error);

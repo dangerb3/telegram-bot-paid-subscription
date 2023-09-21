@@ -1,3 +1,5 @@
+import fs from "fs";
+
 export const daysToSeconds = (days) => {
   return days * 24 * 60 * 60;
 };
@@ -25,6 +27,22 @@ export const getSubscriptionRemainingTime = (timeSub) => {
 
 export const parseTimestampToHumanDate = (timeSub) => {
   return new Date(timeSub).toLocaleString();
+};
+
+export const parseHumanDateToISO = (date) => {
+  console.log(date);
+  // Split the date and time components
+  const [datePart, timePart] = date.split(", ");
+  const [day, month, year] = datePart.split(".").map(Number);
+  const [hours, minutes, seconds] = timePart.split(":").map(Number);
+
+  // Create a new Date object using the components
+  const parsedDate = new Date(year, month - 1, day, hours, minutes, seconds);
+
+  // Get the ISO 8601 formatted string
+  const iso8601Date = parsedDate.toISOString();
+
+  return iso8601Date;
 };
 
 export const timeout = (ms) => {
@@ -149,4 +167,42 @@ export const createPDFReport = (sourceData, fileName) => {
   doc.save(fileName);
 
   return doc;
+};
+
+export const sendHistoryFile = async (
+  historySource,
+  location,
+  fileName,
+  bot,
+  chatId,
+  handleEmptyMessage
+) => {
+  const history = historySource.map((item) => ({
+    ...item,
+    time_sub: parseTimestampToHumanDate(item.time_sub),
+    payment_date: parseTimestampToHumanDate(item.payment_date),
+  }));
+
+  if (history.length) {
+    if (!fs.existsSync(location)) fs.mkdirSync(location);
+
+    createPDFReportAutoTable(history, location + fileName);
+
+    const fileOpts = {
+      file: "Buffer",
+      filename: fileName,
+      contentType: "application/pdf",
+    };
+
+    const file = await fs.promises.readFile(location + fileName);
+
+    await bot.sendDocument(chatId, file, fileOpts, {
+      filename: fileName,
+      contentType: "application/pdf",
+    });
+
+    await fs.promises.unlink(location + fileName);
+  } else {
+    await bot.sendMessage(chatId, handleEmptyMessage);
+  }
 };
