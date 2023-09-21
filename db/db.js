@@ -1,7 +1,7 @@
 import sqlite3 from "sqlite3";
 sqlite3.verbose();
 
-let db;
+// let db;
 
 const columns =
   "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT, time_sub INTEGER, payment_code TEXT, card_numbers TEXT, payment_status TEXT, payment_date TEXT)";
@@ -15,18 +15,41 @@ const SELECT_USERS = "SELECT * FROM users";
 const INSERT = "INSERT INTO users VALUES (?,?,?,?,?)";
 const DELETE = "DELETE FROM users WHERE chatId=?";
 
-const openDb = function () {
-  db = new sqlite3.Database(process.env.SQLITE_DB_PATH);
-};
+const POOL_SIZE = 50;
+const connectionPool = [];
 
-const closeDb = function () {
-  db.close();
-};
+function initializeConnectionPool() {
+  for (let i = 0; i < POOL_SIZE; i++) {
+    const db = new sqlite3.Database(process.env.SQLITE_DB_PATH);
+    connectionPool.push(db);
+  }
+}
+
+function getConnection() {
+  if (connectionPool.length === 0) {
+    throw new Error("No available connections in the pool.");
+  }
+  return connectionPool.pop();
+}
+
+function releaseConnection(db) {
+  connectionPool.push(db);
+}
+
+// const openDb = function () {
+//   db = new sqlite3.Database(process.env.SQLITE_DB_PATH);
+// };
+
+// const closeDb = function () {
+//   db.close();
+// };
 
 const database = {
   init() {
+    initializeConnectionPool();
+
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         try {
@@ -39,14 +62,14 @@ const database = {
           reject(e);
         }
 
-        closeDb();
+        releaseConnection(db);
       });
     });
   },
 
   addNewUser(userId, nickname, fullname) {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         try {
@@ -60,14 +83,14 @@ const database = {
           reject();
         }
 
-        closeDb();
+        releaseConnection(db);
       });
     });
   },
 
   getUserNickname(userId) {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         db.get(
@@ -79,7 +102,7 @@ const database = {
               resolve(row?.nickname);
             }
 
-            closeDb();
+            releaseConnection(db);
           }
         );
       });
@@ -95,7 +118,7 @@ const database = {
     paymentDate
   ) {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         try {
@@ -113,14 +136,14 @@ const database = {
           reject(e);
         }
 
-        closeDb();
+        releaseConnection(db);
       });
     });
   },
 
   updatePaymentHistory(userId) {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         try {
@@ -133,14 +156,14 @@ const database = {
           reject(e);
         }
 
-        closeDb();
+        releaseConnection(db);
       });
     });
   },
 
   getTimeSubscription(userId) {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         db.get(
@@ -152,7 +175,7 @@ const database = {
               resolve(row.time_sub);
             }
 
-            closeDb();
+            releaseConnection(db);
           }
         );
       });
@@ -161,7 +184,7 @@ const database = {
 
   getPaymentsHistory(userId) {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         db.all(
@@ -173,7 +196,7 @@ const database = {
               resolve(row);
             }
 
-            closeDb();
+            releaseConnection(db);
           }
         );
       });
@@ -182,7 +205,7 @@ const database = {
 
   getAllUsersPaymentsHistory() {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         db.all(`SELECT * FROM payments`, (err, row) => {
@@ -192,7 +215,7 @@ const database = {
             resolve(row);
           }
 
-          closeDb();
+          releaseConnection(db);
         });
       });
     });
@@ -200,7 +223,7 @@ const database = {
 
   getAllUsersSubscriptionStatus() {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         db.all(`SELECT * FROM users`, (err, row) => {
@@ -210,7 +233,7 @@ const database = {
             resolve(row);
           }
 
-          closeDb();
+          releaseConnection(db);
         });
       });
     });
@@ -218,7 +241,7 @@ const database = {
 
   getAllUsersWithBadSubscriptionStatus() {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         db.all(
@@ -230,7 +253,7 @@ const database = {
               resolve(row);
             }
 
-            closeDb();
+            releaseConnection(db);
           }
         );
       });
@@ -239,7 +262,7 @@ const database = {
 
   addNewUserChat(userId, username, chatId) {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         try {
@@ -253,14 +276,14 @@ const database = {
           reject();
         }
 
-        closeDb();
+        releaseConnection(db);
       });
     });
   },
 
   getAllUsersChats() {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         db.all(`SELECT * FROM users_chats`, (err, row) => {
@@ -270,7 +293,7 @@ const database = {
             resolve(row);
           }
 
-          closeDb();
+          releaseConnection(db);
         });
       });
     });
@@ -278,7 +301,7 @@ const database = {
 
   getUserChatByUserId(userId) {
     return new Promise((resolve, reject) => {
-      openDb();
+      const db = getConnection();
 
       db.serialize(() => {
         db.get(
@@ -290,7 +313,7 @@ const database = {
               resolve(row.chat_id);
             }
 
-            closeDb();
+            releaseConnection(db);
           }
         );
       });
