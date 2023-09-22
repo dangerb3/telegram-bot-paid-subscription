@@ -15,6 +15,18 @@ import YooKassa from "yookassa";
 
 import configManager from "./utils/configManager.js";
 
+import logToFile from "log-to-file";
+
+var log = console.log;
+
+console.log = function () {
+  log.apply(
+    console,
+    [parseTimestampToHumanDate(Date.now())].concat(arguments[0]),
+    logToFile(arguments[0])
+  );
+};
+
 // process.env.NTBA_FIX_319 = 1; process.env.NTBA_FIX_350 = 0;
 
 import dotenv from "dotenv";
@@ -81,7 +93,7 @@ const job = new CronJob(
                   user_id: user.user_id,
                   // time_sub:
                 },
-                payment_method_id: user.payment_code, // TODO: make to payment_method.id
+                payment_method_id: user.payment_method,
                 capture: true,
                 description: `Автоплатеж по подписке, ${
                   configManager.getConfig().SUB_PRICE
@@ -127,19 +139,19 @@ const job = new CronJob(
               const timeSub = date.setDate(
                 date.getDate() + configManager.getConfig().SUB_PERIOD_DAYS
               );
-              // const userId = savedPayment.metadata.user_id; const fullname =
-              // msg.from.first_name + (msg.from.last_name ?? "");
+
               const paymentId = savedPayment.id;
+              const paymentMethod = savedPayment.payment_method.id;
               const cardNumbers =
                 savedPayment.payment_method.card.first6 +
                 "," +
                 savedPayment.payment_method.card.last4;
-              // const userNickname = await db.getUserNickname(user.user_id);
 
               await db.setSubscription(
                 user.user_id,
                 timeSub,
                 paymentId,
+                paymentMethod,
                 cardNumbers,
                 savedPayment.status,
                 savedPayment.created_at
@@ -161,6 +173,7 @@ const job = new CronJob(
                 user.user_id,
                 timeSub,
                 savedPayment.id,
+                savedPayment.payment_method.id,
                 cardNumbers,
                 savedPayment.status,
                 savedPayment.created_at
@@ -371,6 +384,7 @@ const initBot = function () {
           const userId = savedPayment.metadata.user_id;
           const fullname = msg.from.first_name + (msg.from.last_name ?? "");
           const paymentId = savedPayment.id;
+          const paymentMethod = savedPayment.payment_method.id;
           const cardNumbers =
             savedPayment.payment_method.card.first6 +
             "," +
@@ -385,6 +399,7 @@ const initBot = function () {
             userId,
             timeSub,
             paymentId,
+            paymentMethod,
             cardNumbers,
             savedPayment.status,
             savedPayment.created_at
@@ -412,6 +427,7 @@ const initBot = function () {
             userId,
             timeSub,
             savedPayment.id,
+            savedPayment.payment_method.id,
             cardNumbers,
             savedPayment.status,
             savedPayment.created_at
@@ -430,6 +446,7 @@ const initBot = function () {
       if (msg.text === "Прервать подписку") {
         await db.setSubscription(
           userId,
+          0,
           0,
           0,
           0,

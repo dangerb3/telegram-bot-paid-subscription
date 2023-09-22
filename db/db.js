@@ -4,7 +4,7 @@ sqlite3.verbose();
 // let db;
 
 const columns =
-  "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT, time_sub INTEGER, payment_code TEXT, card_numbers TEXT, payment_status TEXT, payment_date TEXT)";
+  "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT, time_sub INTEGER, payment_code TEXT, payment_method TEXT, card_numbers TEXT, payment_status TEXT, payment_date TEXT)";
 const CREATE_USERS_TABLE = "CREATE TABLE IF NOT EXISTS users " + columns;
 const CREATE_PAYMENTS_TABLE = "CREATE TABLE IF NOT EXISTS payments " + columns;
 const CREATE_USERS_CHAT_TABLE =
@@ -113,6 +113,7 @@ const database = {
     userId,
     timeSub,
     paymentId,
+    paymentMethod,
     cardNumbers,
     paymentStatus,
     paymentDate
@@ -123,9 +124,10 @@ const database = {
       db.serialize(() => {
         try {
           db.run(
-            "UPDATE users SET time_sub=?, payment_code=?, card_numbers=?, payment_status=?, payment_date=? WHERE user_id=?",
+            "UPDATE users SET time_sub=?, payment_code=?, payment_method=?, card_numbers=?, payment_status=?, payment_date=? WHERE user_id=?",
             timeSub,
             paymentId,
+            paymentMethod,
             cardNumbers,
             paymentStatus,
             paymentDate,
@@ -148,7 +150,7 @@ const database = {
       db.serialize(() => {
         try {
           db.run(
-            "INSERT INTO payments (user_id, nickname, fullname, time_sub, payment_code, card_numbers, payment_status, payment_date) SELECT user_id, nickname, fullname, time_sub, payment_code, card_numbers, payment_status, payment_date FROM users WHERE user_id=?",
+            "INSERT INTO payments (user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date) SELECT user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date FROM users WHERE user_id=?",
             userId
           );
           resolve();

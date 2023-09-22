@@ -28,6 +28,7 @@
     "jscpd": "^3.5.10",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.6.0",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "log-to-file": "^3.0.3"
   }
 }

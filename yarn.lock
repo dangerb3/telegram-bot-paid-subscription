@@ -2287,6 +2287,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"log-to-file@npm:^3.0.3":
+  version: 3.0.3
+  resolution: "log-to-file@npm:3.0.3"
+  checksum: f3a409de0d95c179d48e11a3e19d4d996ccd14cfc06e9886063c551ba84492de5da65fd87f287e6176b536ac8d5eae67d25c9aefbd75f056b1c628f88648a434
+  languageName: node
+  linkType: hard
+
 "lru-cache@npm:^6.0.0":
   version: 6.0.0
   resolution: "lru-cache@npm:6.0.0"
@@ -3819,6 +3826,7 @@ __metadata:
     jspdf: ^2.5.1
     jspdf-autotable: ^3.6.0
     lodash: ^4.17.21
+    log-to-file: ^3.0.3
     node-telegram-bot-api: ^0.61.0
     nodemon: ^3.0.1
     sqlite3: ^5.1.6

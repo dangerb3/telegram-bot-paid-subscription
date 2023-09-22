@@ -11,3 +11,5 @@
 db/db.db
 
 reports/
+
+default.log
