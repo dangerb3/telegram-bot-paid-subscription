@@ -1,3 +1,27 @@
+## Description
+
+- It is a Telegram bot server that can manage users in SQLite3 database and work with recurrent payments for them.
+- There is also Cron task manager, which can control and do user auto payments in the appropriate time.
+- Payments working only on Yookassa side because at this moment the Telegram Payments API doesn't support this feature.
+
+### Roles
+
+User:
+
+- Subscribe
+- Unsubscribe
+- Get payments history report in pdf
+
+Admin:
+
+- Get current subscription price
+- Get current payment period
+- Change subscription price
+- Change payment period
+- Export payment history of all users
+- Export payment status of all users
+- Export unsuccessful payment issues of all users
+
 ## Installation
 
 Copy `.env.example` to `.env` and put your setting.
