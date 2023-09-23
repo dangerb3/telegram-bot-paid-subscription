@@ -143,6 +143,27 @@ const database = {
     });
   },
 
+  getSubscriptionStatus(userId) {
+    return new Promise((resolve, reject) => {
+      const db = getConnection();
+
+      db.serialize(() => {
+        db.get(
+          `SELECT payment_status, payment_date FROM users WHERE user_id='${userId}'`,
+          (err, row) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(row);
+            }
+
+            releaseConnection(db);
+          }
+        );
+      });
+    });
+  },
+
   updatePaymentHistory(userId) {
     return new Promise((resolve, reject) => {
       const db = getConnection();

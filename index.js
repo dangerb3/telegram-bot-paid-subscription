@@ -297,8 +297,6 @@ const initBot = function () {
         }
       }
       if (msg.text === "Оформить подписку") {
-        await bot.deleteMessage(msg.chat.id, msg.message_id);
-
         const payment = await yooKassa.createPayment(
           {
             amount: {
@@ -444,25 +442,45 @@ const initBot = function () {
         }
       }
       if (msg.text === "Прервать подписку") {
-        await db.setSubscription(
-          userId,
-          0,
-          0,
-          0,
-          0,
-          "cancelledByUser",
-          new Date().toISOString()
-        );
-        await bot.sendMessage(msg.chat.id, "Подписка успешно отменена");
+        const subscriptionStatus = (await db.getSubscriptionStatus(msg.from.id))
+          .payment_status;
+        const subscriptionDate = (await db.getSubscriptionStatus(msg.from.id))
+          .payment_date;
 
-        const chats = await db.getAllUsersChats();
-        const adminChats = chats.filter((i) => checkIsAdmin(i.nickname));
-
-        for (let chat of adminChats) {
-          await bot.sendMessage(
-            chat.chat_id,
-            `Пользователь @${username} (id ${userId}) отменил подписку`
+        if (subscriptionStatus === "succeeded") {
+          await db.setSubscription(
+            userId,
+            0,
+            0,
+            0,
+            0,
+            "cancelledByUser",
+            new Date().toISOString()
           );
+          await bot.sendMessage(msg.chat.id, "Подписка успешно отменена");
+
+          const chats = await db.getAllUsersChats();
+          const adminChats = chats.filter((i) => checkIsAdmin(i.nickname));
+
+          for (let chat of adminChats) {
+            await bot.sendMessage(
+              chat.chat_id,
+              `Пользователь @${username} (id ${userId}) отменил подписку`
+            );
+          }
+        } else {
+          if (subscriptionStatus === "cancelledByUser")
+            await bot.sendMessage(
+              msg.chat.id,
+              `Невозможно отменить подписку, подписка была отменена: ${parseTimestampToHumanDate(
+                subscriptionDate
+              )}`
+            );
+          else
+            await bot.sendMessage(
+              msg.chat.id,
+              `Невозможно отменить подписку, подписка не активна`
+            );
         }
       }
       if (msg.text === "История списаний") {
