@@ -6,7 +6,6 @@ import db from "./db/db.js";
 import {
   timeout,
   getSubscriptionRemainingTime,
-  createPDFReportAutoTable,
   parseTimestampToHumanDate,
   getSubscriptionStatus,
   sendHistoryFile,
@@ -32,7 +31,6 @@ console.log = function () {
 import dotenv from "dotenv";
 dotenv.config();
 
-const port = configManager.getConfig().PORT || 3000;
 const expressApp = express();
 const __dirname = path.resolve();
 
@@ -42,8 +40,6 @@ expressApp.use(express.json());
 const attemptCounts = Array.from(
   Array(Number(configManager.getConfig().ATTEMPT_WAIT_PAYMENT_COUNTS)).keys()
 );
-
-// const idempotencyKey = uuidv4();
 
 const yooKassa = new YooKassa({
   shopId: configManager.getConfig().SHOP_ID,

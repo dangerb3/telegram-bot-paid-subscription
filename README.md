@@ -2,12 +2,16 @@
 
 Copy `.env.example` to `.env` and put your setting.
 
+Set `.env` variables:
+
 - Place your telegram bot token in `API_KEY_BOT`.
+- Place link to bot in `BOT_LINK`
 - Place your payment token in `PAYMENT_TOKEN`.
+- Set also `PAYMENT_TOKEN`, `SHOP_SECRET_KEY` from Yookassa
 - Set the absolute path for sqlite database file in `SQLITE_DB_PATH`.
 - Install sqlite3 (if it is not present) on your OS.
 
-Download dependencies and run in NodeJS:
+Install nodeJS and yarn, then execute:
 
     yarn install
     yarn start
