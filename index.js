@@ -188,7 +188,7 @@ const job = new CronJob(
 
             await bot.sendMessage(
               targetChatId,
-              "Произошла ошибка при оплате месячной подписки. Обратитесь к администратору."
+              "Произошла ошибка при оплате месячной подписки. Обратитесь к администратору"
             );
 
             await db.setSubscription(
