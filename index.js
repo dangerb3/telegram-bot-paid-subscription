@@ -133,7 +133,8 @@ const job = new CronJob(
                 );
               const date = new Date();
               const timeSub = date.setDate(
-                date.getDate() + configManager.getConfig().SUB_PERIOD_DAYS
+                date.getDate() +
+                  Number(configManager.getConfig().SUB_PERIOD_DAYS)
               );
 
               const paymentId = savedPayment.id;
@@ -158,7 +159,8 @@ const job = new CronJob(
               // msg.from.first_name + (msg.from.last_name ?? "");
               const date = new Date();
               const timeSub = date.setDate(
-                date.getDate() + configManager.getConfig().SUB_PERIOD_DAYS
+                date.getDate() +
+                  Number(configManager.getConfig().SUB_PERIOD_DAYS)
               );
               const cardNumbers =
                 (savedPayment?.payment_method?.card?.first6 || 0) +
@@ -372,7 +374,7 @@ const initBot = function () {
 
           const date = new Date();
           const timeSub = date.setDate(
-            date.getDate() + configManager.getConfig().SUB_PERIOD_DAYS
+            date.getDate() + Number(configManager.getConfig().SUB_PERIOD_DAYS)
           );
 
           const userId = savedPayment.metadata.user_id;
@@ -406,7 +408,7 @@ const initBot = function () {
 
           const date = new Date();
           const timeSub = date.setDate(
-            date.getDate() + configManager.getConfig().SUB_PERIOD_DAYS
+            date.getDate() + Number(configManager.getConfig().SUB_PERIOD_DAYS)
           );
 
           const cardNumbers =
