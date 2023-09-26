@@ -195,7 +195,7 @@ const database = {
             if (err) {
               reject(err);
             } else {
-              resolve(row.time_sub);
+              resolve(row?.time_sub);
             }
 
             releaseConnection(db);
@@ -333,7 +333,7 @@ const database = {
             if (err) {
               reject(err);
             } else {
-              resolve(row.chat_id);
+              resolve(row?.chat_id);
             }
 
             releaseConnection(db);

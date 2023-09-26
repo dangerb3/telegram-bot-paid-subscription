@@ -294,8 +294,10 @@ const initBot = function () {
       }
       if (msg.text === "Подписка") {
         const timeSub = await db.getTimeSubscription(userId);
-        const subscriptionStatus = (await db.getSubscriptionStatus(msg.from.id))
-          .payment_status;
+
+        const subscriptionStatus = timeSub
+          ? (await db.getSubscriptionStatus(msg.from.id)).payment_status
+          : undefined;
 
         if (subscriptionStatus === "succeeded") {
           const remainedSubTime = getSubscriptionRemainingTime(timeSub);
@@ -451,10 +453,12 @@ const initBot = function () {
         }
       }
       if (msg.text === "Прервать подписку") {
-        const subscriptionStatus = (await db.getSubscriptionStatus(msg.from.id))
-          .payment_status;
-        const subscriptionDate = (await db.getSubscriptionStatus(msg.from.id))
-          .payment_date;
+        const subscriptionStatusSource = await db.getSubscriptionStatus(
+          msg.from.id
+        );
+
+        const subscriptionStatus = subscriptionStatusSource?.payment_status;
+        const subscriptionDate = subscriptionStatusSource?.payment_date;
 
         if (subscriptionStatus === "succeeded") {
           await db.setSubscription(
