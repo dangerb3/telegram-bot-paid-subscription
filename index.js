@@ -280,11 +280,11 @@ const initBot = function () {
           } else {
             await bot.sendMessage(
               msg.chat.id,
-              `Добро пожаловать! Выберите необходимое действие в меню`
+              `Добро пожаловать! Данный бот служит для оформления ежемесячной подписки на занятия португальским языком. Подписку в любой момент можно отменить. Стоимость подписки 100р / месяц.`
             );
           }
 
-          await bot.sendMessage(msg.chat.id, "Выберите действие", {
+          await bot.sendMessage(msg.chat.id, "Выберите действие ниже:", {
             reply_markup: {
               keyboard: commands,
               force_reply: true,
