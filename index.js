@@ -224,11 +224,7 @@ const checkIsAdmin = (username) => {
 };
 
 const initBot = function () {
-  const commands = [
-    ["Оформить подписку"],
-    ["Прервать подписку"],
-    ["История списаний"],
-  ];
+  const commands = [["Подписка"], ["Прервать подписку"], ["История списаний"]];
 
   const adminCommands = [
     ["Текущая стоимость подписки"],
@@ -290,155 +286,168 @@ const initBot = function () {
             reply_markup: {
               keyboard: commands,
               force_reply: true,
-              one_time_keyboard: true,
+              // one_time_keyboard: true,
               resize_keyboard: true,
             },
           });
         }
       }
-      if (msg.text === "Оформить подписку") {
-        const payment = await yooKassa.createPayment(
-          {
-            amount: {
-              value: configManager.getConfig().SUB_PRICE,
-              currency: "RUB",
-            },
-            payment_method_data: {
-              type: "bank_card",
-            },
-            confirmation: {
-              type: "redirect",
-              return_url: configManager.getConfig().BOT_LINK,
-            },
-            metadata: {
-              user_id: msg.from.id,
-              // time_sub:
-            },
-            capture: true,
-            save_payment_method: true,
-            description: `Оформление подписки, ${
-              configManager.getConfig().SUB_PRICE
-            } рублей`,
-          },
-          Math.floor(Math.random() * 100000000) + 1
-        );
+      if (msg.text === "Подписка") {
+        const timeSub = await db.getTimeSubscription(userId);
+        const subscriptionStatus = (await db.getSubscriptionStatus(msg.from.id))
+          .payment_status;
 
-        await bot.sendMessage(
-          msg.chat.id,
-          `Стоимость подписки на ${
-            configManager.getConfig().SUB_PERIOD_DAYS
-          } дней составляет ${
-            configManager.getConfig().SUB_PRICE
-          } рублей.\nОплата доступна по ссылке:\n ${payment.confirmationUrl}`
-        );
-
-        await bot.sendMessage(msg.chat.id, "Ожидание оплаты ...");
-
-        let status;
-        let savedPayment;
-
-        for (const attempt of attemptCounts) {
-          console.count(
-            `Waiting payment from user ${msg.from.id} (@${msg.from.username})`
-          );
-
-          savedPayment = await yooKassa.getPayment(payment.id);
-
-          if (savedPayment.isSucceeded) {
-            status = "succeed";
-            break;
-          } else if (savedPayment.isWaitingForCapture) {
-            status = "waitingForCapture";
-            break;
-          }
-
-          await timeout(3000);
-        }
-
-        if (status === "succeed" || status === "waitingForCapture") {
-          const isCardSaved = savedPayment.payment_method.saved;
-          const getCardSavedStatus = isCardSaved
-            ? "Автоплатежи активны"
-            : "Автоплатежи не активны";
-
-          if (status === "succeed")
-            await bot.sendMessage(
-              msg.chat.id,
-              "Оплата прошла успешно.\n" + getCardSavedStatus
-            );
-          else if (status === "waitingForCapture")
-            // TODO: cover case, set timeSub when payment succeed
-            await bot.sendMessage(
-              msg.chat.id,
-              "Оплата прошла успешно.\n Транзакция ожидает подтверждения продавца.\n" +
-                getCardSavedStatus
-            );
-
-          const date = new Date();
-          const timeSub = date.setDate(
-            date.getDate() + Number(configManager.getConfig().SUB_PERIOD_DAYS)
-          );
-
-          const userId = savedPayment.metadata.user_id;
-          const fullname = msg.from.first_name + (msg.from.last_name ?? "");
-          const paymentId = savedPayment.id;
-          const paymentMethod = savedPayment.payment_method.id;
-          const cardNumbers =
-            savedPayment.payment_method.card.first6 +
-            "," +
-            savedPayment.payment_method.card.last4;
-
-          const userNickname = await db.getUserNickname(userId);
-
-          if (!userNickname)
-            await db.addNewUser(userId, msg.from.username, fullname);
-
-          await db.setSubscription(
-            userId,
-            timeSub,
-            paymentId,
-            paymentMethod,
-            cardNumbers,
-            savedPayment.status,
-            savedPayment.created_at
-          );
-
-          await db.updatePaymentHistory(userId);
-        } else {
-          const userNickname = await db.getUserNickname(userId);
-          const fullname = msg.from.first_name + (msg.from.last_name ?? "");
-
-          const date = new Date();
-          const timeSub = date.setDate(
-            date.getDate() + Number(configManager.getConfig().SUB_PERIOD_DAYS)
-          );
-
-          const cardNumbers =
-            (savedPayment?.payment_method?.card?.first6 || 0) +
-            "," +
-            (savedPayment?.payment_method?.card?.last4 || 0);
-
-          if (!userNickname)
-            await db.addNewUser(userId, msg.from.username, fullname);
-
-          await db.setSubscription(
-            userId,
-            timeSub,
-            savedPayment.id,
-            savedPayment.payment_method.id,
-            cardNumbers,
-            savedPayment.status,
-            savedPayment.created_at
-          );
-
-          await db.updatePaymentHistory(userId);
+        if (subscriptionStatus === "succeeded") {
+          const remainedSubTime = getSubscriptionRemainingTime(timeSub);
 
           await bot.sendMessage(
             msg.chat.id,
-            "Произошла ошибка при оплате. Обратитесь к администратору или попробуйте ещё раз." +
-              "\nid платежа: " +
-              savedPayment.id
+            `\nСтатус Вашей подписки: ${remainedSubTime}`
           );
+        } else {
+          const payment = await yooKassa.createPayment(
+            {
+              amount: {
+                value: configManager.getConfig().SUB_PRICE,
+                currency: "RUB",
+              },
+              payment_method_data: {
+                type: "bank_card",
+              },
+              confirmation: {
+                type: "redirect",
+                return_url: configManager.getConfig().BOT_LINK,
+              },
+              metadata: {
+                user_id: msg.from.id,
+                // time_sub:
+              },
+              capture: true,
+              save_payment_method: true,
+              description: `Оформление подписки, ${
+                configManager.getConfig().SUB_PRICE
+              } рублей`,
+            },
+            Math.floor(Math.random() * 100000000) + 1
+          );
+
+          await bot.sendMessage(
+            msg.chat.id,
+            `Стоимость подписки на ${
+              configManager.getConfig().SUB_PERIOD_DAYS
+            } дней составляет ${
+              configManager.getConfig().SUB_PRICE
+            } рублей.\nОплата доступна по ссылке:\n ${payment.confirmationUrl}`
+          );
+
+          await bot.sendMessage(msg.chat.id, "Ожидание оплаты ...");
+
+          let status;
+          let savedPayment;
+
+          for (const attempt of attemptCounts) {
+            console.count(
+              `Waiting payment from user ${msg.from.id} (@${msg.from.username})`
+            );
+
+            savedPayment = await yooKassa.getPayment(payment.id);
+
+            if (savedPayment.isSucceeded) {
+              status = "succeed";
+              break;
+            } else if (savedPayment.isWaitingForCapture) {
+              status = "waitingForCapture";
+              break;
+            }
+
+            await timeout(3000);
+          }
+
+          if (status === "succeed" || status === "waitingForCapture") {
+            const isCardSaved = savedPayment.payment_method.saved;
+            const getCardSavedStatus = isCardSaved
+              ? "Автоплатежи активны"
+              : "Автоплатежи не активны";
+
+            if (status === "succeed")
+              await bot.sendMessage(
+                msg.chat.id,
+                "Оплата прошла успешно.\n" + getCardSavedStatus
+              );
+            else if (status === "waitingForCapture")
+              // TODO: cover case, set timeSub when payment succeed
+              await bot.sendMessage(
+                msg.chat.id,
+                "Оплата прошла успешно.\n Транзакция ожидает подтверждения продавца.\n" +
+                  getCardSavedStatus
+              );
+
+            const date = new Date();
+            const timeSub = date.setDate(
+              date.getDate() + Number(configManager.getConfig().SUB_PERIOD_DAYS)
+            );
+
+            const userId = savedPayment.metadata.user_id;
+            const fullname = msg.from.first_name + (msg.from.last_name ?? "");
+            const paymentId = savedPayment.id;
+            const paymentMethod = savedPayment.payment_method.id;
+            const cardNumbers =
+              savedPayment.payment_method.card.first6 +
+              "," +
+              savedPayment.payment_method.card.last4;
+
+            const userNickname = await db.getUserNickname(userId);
+
+            if (!userNickname)
+              await db.addNewUser(userId, msg.from.username, fullname);
+
+            await db.setSubscription(
+              userId,
+              timeSub,
+              paymentId,
+              paymentMethod,
+              cardNumbers,
+              savedPayment.status,
+              savedPayment.created_at
+            );
+
+            await db.updatePaymentHistory(userId);
+          } else {
+            const userNickname = await db.getUserNickname(userId);
+            const fullname = msg.from.first_name + (msg.from.last_name ?? "");
+
+            const date = new Date();
+            const timeSub = date.setDate(
+              date.getDate() + Number(configManager.getConfig().SUB_PERIOD_DAYS)
+            );
+
+            const cardNumbers =
+              (savedPayment?.payment_method?.card?.first6 || 0) +
+              "," +
+              (savedPayment?.payment_method?.card?.last4 || 0);
+
+            if (!userNickname)
+              await db.addNewUser(userId, msg.from.username, fullname);
+
+            await db.setSubscription(
+              userId,
+              timeSub,
+              savedPayment.id,
+              savedPayment.payment_method.id,
+              cardNumbers,
+              savedPayment.status,
+              savedPayment.created_at
+            );
+
+            await db.updatePaymentHistory(userId);
+
+            await bot.sendMessage(
+              msg.chat.id,
+              "Произошла ошибка при оплате. Обратитесь к администратору или попробуйте ещё раз." +
+                "\nid платежа: " +
+                savedPayment.id
+            );
+          }
         }
       }
       if (msg.text === "Прервать подписку") {
