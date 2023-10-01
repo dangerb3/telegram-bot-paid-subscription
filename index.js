@@ -102,7 +102,7 @@ const job = new CronJob(
               targetChatId,
               `Автоплатеж по подписке инициирован (${
                 configManager.getConfig().SUB_PRICE
-              }) рублей`
+              } рублей)`
             );
             let status;
             let savedPayment;
@@ -151,7 +151,8 @@ const job = new CronJob(
                 paymentMethod,
                 cardNumbers,
                 savedPayment.status,
-                savedPayment.created_at
+                savedPayment.created_at,
+                savedPayment.amount.value + savedPayment.amount.currency
               );
               await db.updatePaymentHistory(user.user_id);
             } else {
@@ -174,7 +175,8 @@ const job = new CronJob(
                 savedPayment.payment_method.id,
                 cardNumbers,
                 savedPayment.status,
-                savedPayment.created_at
+                savedPayment.created_at,
+                savedPayment.amount.value + savedPayment.amount.currency
               );
               await db.updatePaymentHistory(user.user_id);
               await bot.sendMessage(
@@ -198,7 +200,8 @@ const job = new CronJob(
               user.payment_method,
               user.card_numbers,
               "error: " + e,
-              new Date().toISOString()
+              new Date().toISOString(),
+              savedPayment.amount.value + savedPayment.amount.currency
             );
             await db.updatePaymentHistory(user.user_id);
           }
@@ -253,7 +256,7 @@ const initBot = function () {
             reply_markup: {
               keyboard: adminCommands,
               force_reply: true,
-              one_time_keyboard: true,
+              // one_time_keyboard: true,
               resize_keyboard: true,
             },
           });
@@ -411,7 +414,8 @@ const initBot = function () {
               paymentMethod,
               cardNumbers,
               savedPayment.status,
-              savedPayment.created_at
+              savedPayment.created_at,
+              savedPayment.amount.value + savedPayment.amount.currency
             );
 
             await db.updatePaymentHistory(userId);
@@ -439,7 +443,8 @@ const initBot = function () {
               savedPayment.payment_method.id,
               cardNumbers,
               savedPayment.status,
-              savedPayment.created_at
+              savedPayment.created_at,
+              savedPayment.amount.value + savedPayment.amount.currency
             );
 
             await db.updatePaymentHistory(userId);
@@ -469,7 +474,8 @@ const initBot = function () {
             0,
             0,
             "cancelledByUser",
-            new Date().toISOString()
+            new Date().toISOString(),
+            0
           );
           await bot.sendMessage(msg.chat.id, "Подписка успешно отменена");
 

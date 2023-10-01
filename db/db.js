@@ -4,7 +4,7 @@ sqlite3.verbose();
 // let db;
 
 const columns =
-  "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT, time_sub INTEGER, payment_code TEXT, payment_method TEXT, card_numbers TEXT, payment_status TEXT, payment_date TEXT)";
+  "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT, time_sub INTEGER, payment_code TEXT, payment_method TEXT, card_numbers TEXT, payment_status TEXT, payment_date TEXT, payment_amount TEXT)";
 const CREATE_USERS_TABLE = "CREATE TABLE IF NOT EXISTS users " + columns;
 const CREATE_PAYMENTS_TABLE = "CREATE TABLE IF NOT EXISTS payments " + columns;
 const CREATE_USERS_CHAT_TABLE =
@@ -116,7 +116,8 @@ const database = {
     paymentMethod,
     cardNumbers,
     paymentStatus,
-    paymentDate
+    paymentDate,
+    paymentAmount
   ) {
     return new Promise((resolve, reject) => {
       const db = getConnection();
@@ -124,13 +125,14 @@ const database = {
       db.serialize(() => {
         try {
           db.run(
-            "UPDATE users SET time_sub=?, payment_code=?, payment_method=?, card_numbers=?, payment_status=?, payment_date=? WHERE user_id=?",
+            "UPDATE users SET time_sub=?, payment_code=?, payment_method=?, card_numbers=?, payment_status=?, payment_date=?, payment_amount=? WHERE user_id=?",
             timeSub,
             paymentId,
             paymentMethod,
             cardNumbers,
             paymentStatus,
             paymentDate,
+            paymentAmount,
             userId
           );
           resolve();
@@ -171,7 +173,7 @@ const database = {
       db.serialize(() => {
         try {
           db.run(
-            "INSERT INTO payments (user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date) SELECT user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date FROM users WHERE user_id=?",
+            "INSERT INTO payments (user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date, payment_amount) SELECT user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date, payment_amount FROM users WHERE user_id=?",
             userId
           );
           resolve();
@@ -211,7 +213,7 @@ const database = {
 
       db.serialize(() => {
         db.all(
-          `SELECT time_sub, payment_code, card_numbers, payment_status, payment_date  FROM payments WHERE user_id='${userId}'`,
+          `SELECT time_sub, payment_code, card_numbers, payment_status, payment_date, payment_amount FROM payments WHERE user_id='${userId}'`,
           (err, row) => {
             if (err) {
               reject(err);
