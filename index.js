@@ -66,7 +66,7 @@ const job = new CronJob(
       users.forEach(async (user) => {
         if (
           !getSubscriptionStatus(user.time_sub) &&
-          user.payment_status !== "cancelledByUser" &&
+          user.payment_status === "succeeded" &&
           !user.payment_status.includes("error: ")
         ) {
           const targetChatId = await db.getUserChatByUserId(user.user_id);
@@ -194,7 +194,8 @@ const job = new CronJob(
             await db.setSubscription(
               user.user_id,
               0,
-              0,
+              savedPayment.id,
+              user.payment_method,
               user.card_numbers,
               "error: " + e,
               new Date().toISOString()
