@@ -266,7 +266,7 @@ const initBot = function () {
 
             const remainedSubTime = getSubscriptionRemainingTime(timeSub);
 
-            if (remainedSubTime) {
+            if (remainedSubTime !== false) {
               await bot.sendMessage(
                 msg.chat.id,
                 `Добро пожаловать, ${userNickname}!\nСтатус Вашей подписки: ${remainedSubTime}`
