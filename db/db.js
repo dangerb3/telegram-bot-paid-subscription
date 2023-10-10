@@ -4,9 +4,13 @@ sqlite3.verbose();
 // let db;
 
 const columns =
-  "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT, time_sub INTEGER, payment_code TEXT, payment_method TEXT, card_numbers TEXT, payment_status TEXT, payment_date TEXT, payment_amount TEXT)";
-const CREATE_USERS_TABLE = "CREATE TABLE IF NOT EXISTS users " + columns;
-const CREATE_PAYMENTS_TABLE = "CREATE TABLE IF NOT EXISTS payments " + columns;
+  "id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, fullname TEXT, time_sub INTEGER, payment_code TEXT, payment_method TEXT, card_numbers TEXT, payment_status TEXT, payment_date TEXT, payment_amount TEXT, info_phone TEXT, info_fullname TEXT, info_email TEXT";
+const columns_users = `(${columns}, UNIQUE(user_id))`;
+const columns_payments = `(${columns})`;
+
+const CREATE_USERS_TABLE = "CREATE TABLE IF NOT EXISTS users " + columns_users;
+const CREATE_PAYMENTS_TABLE =
+  "CREATE TABLE IF NOT EXISTS payments " + columns_payments;
 const CREATE_USERS_CHAT_TABLE =
   "CREATE TABLE IF NOT EXISTS users_chats " +
   "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, chat_id INTEGER NOT NULL, UNIQUE(user_id, chat_id))";
@@ -173,7 +177,7 @@ const database = {
       db.serialize(() => {
         try {
           db.run(
-            "INSERT INTO payments (user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date, payment_amount) SELECT user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date, payment_amount FROM users WHERE user_id=?",
+            "INSERT INTO payments (user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date, payment_amount, info_phone, info_fullname, info_email) SELECT user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date, payment_amount, info_phone, info_fullname, info_email FROM users WHERE user_id=?",
             userId
           );
           resolve();
@@ -341,6 +345,90 @@ const database = {
             releaseConnection(db);
           }
         );
+      });
+    });
+  },
+
+  prepareUser(userId, nickname) {
+    return new Promise((resolve, reject) => {
+      const db = getConnection();
+
+      db.serialize(() => {
+        try {
+          let stmt = db.prepare(
+            `INSERT OR IGNORE INTO users (user_id, nickname) VALUES (?, ?)`
+          );
+          stmt.run(userId, nickname);
+          stmt.finalize();
+          resolve();
+        } catch (e) {
+          reject();
+        }
+
+        releaseConnection(db);
+      });
+    });
+  },
+
+  addInfoPhone(userId, infoPhone) {
+    return new Promise((resolve, reject) => {
+      const db = getConnection();
+
+      db.serialize(() => {
+        try {
+          let stmt = db.prepare(
+            `UPDATE users SET info_phone=? WHERE user_id=?`
+          );
+          stmt.run(infoPhone, userId);
+          stmt.finalize();
+          resolve();
+        } catch (e) {
+          reject();
+        }
+
+        releaseConnection(db);
+      });
+    });
+  },
+
+  getInfoPhone(userId) {
+    return new Promise((resolve, reject) => {
+      const db = getConnection();
+
+      db.serialize(() => {
+        db.get(
+          `SELECT info_phone FROM users WHERE user_id='${userId}'`,
+          (err, row) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(row?.info_phone);
+            }
+
+            releaseConnection(db);
+          }
+        );
+      });
+    });
+  },
+
+  addInfoFullnameAndEmail(userId, infoFullname, infoEmail) {
+    return new Promise((resolve, reject) => {
+      const db = getConnection();
+
+      db.serialize(() => {
+        try {
+          let stmt = db.prepare(
+            `UPDATE users SET info_fullname=?, info_email=? WHERE user_id=?`
+          );
+          stmt.run(infoFullname, infoEmail, userId);
+          stmt.finalize();
+          resolve();
+        } catch (e) {
+          reject();
+        }
+
+        releaseConnection(db);
       });
     });
   },

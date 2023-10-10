@@ -30,7 +30,6 @@ export const parseTimestampToHumanDate = (timeSub) => {
 };
 
 export const parseHumanDateToISO = (date) => {
-  console.log(date);
   // Split the date and time components
   const [datePart, timePart] = date.split(", ");
   const [day, month, year] = datePart.split(".").map(Number);
@@ -131,6 +130,8 @@ export const createPDFReportAutoTable = (sourceData, fileName) => {
   return doc;
 };
 
+// import './Arial Cyr Regular-normal.js'
+
 export const createPDFReport = (sourceData, fileName) => {
   function convertValuesToStringsDeep(obj) {
     return _.cloneDeepWith(obj, (value) => {
@@ -162,6 +163,8 @@ export const createPDFReport = (sourceData, fileName) => {
     putOnlyUsedFonts: true,
     orientation: "l", // landscape
   });
+
+  // doc.addFont('Arial Cyr Regular-normal.ttf', 'Arial Cyr Regular')
 
   doc.table(10, 10, data, headers, { autoSize: true });
   doc.save(fileName);
@@ -205,4 +208,39 @@ export const sendHistoryFile = async (
   } else {
     await bot.sendMessage(chatId, handleEmptyMessage);
   }
+};
+
+export const createUserResponse = async (
+  bot,
+  chatId,
+  questionText,
+  answerText,
+  badAnswerText,
+  maxAttempts
+) => {
+  let answer = "";
+  let count = 0;
+
+  const namePrompt = await bot.sendMessage(chatId, questionText, {
+    reply_markup: {
+      force_reply: true,
+    },
+  });
+
+  await bot.onReplyToMessage(chatId, namePrompt.message_id, async (nameMsg) => {
+    answer = nameMsg.text;
+    // save name in DB if you want to ...
+    await bot.sendMessage(chatId, answerText);
+  });
+
+  while (answer === "" && count < maxAttempts) {
+    console.log("Waiting for user answer");
+    await timeout(2000);
+    ++count;
+  }
+
+  if (answer === "") {
+    await bot.sendMessage(chatId, badAnswerText);
+    return null;
+  } else return answer;
 };

@@ -9,6 +9,8 @@ import {
   parseTimestampToHumanDate,
   getSubscriptionStatus,
   sendHistoryFile,
+  createUserResponse,
+  parseTableHistory,
 } from "./utils/utils.js";
 import YooKassa from "yookassa";
 
@@ -79,6 +81,8 @@ const job = new CronJob(
                 user.time_sub
             );
 
+            const phoneNumber = await db.getInfoPhone(user.user_id);
+
             const payment = await yooKassa.createPayment(
               {
                 amount: {
@@ -88,6 +92,26 @@ const job = new CronJob(
                 metadata: {
                   user_id: user.user_id,
                   // time_sub:
+                },
+                receipt: {
+                  customer: {
+                    phone: phoneNumber,
+                  },
+                  items: [
+                    {
+                      description: `Автоплатеж по подписке, ${
+                        configManager.getConfig().SUB_PRICE
+                      } рублей`,
+                      quantity: "1.00",
+                      amount: {
+                        value: configManager.getConfig().SUB_PRICE,
+                        currency: "RUB",
+                      },
+                      vat_code: "1",
+                      payment_mode: "full_payment",
+                      payment_subject: "service",
+                    },
+                  ],
                 },
                 payment_method_id: user.payment_method,
                 capture: true,
@@ -274,6 +298,11 @@ const initBot = function () {
 
               await bot.sendMessage(
                 msg.chat.id,
+                `Спасибо, что выбираете нас! Если необходимо проверить историю списаний, нажмите кнопку «История списаний» внизу бота`
+              );
+
+              await bot.sendMessage(
+                msg.chat.id,
                 `Выберите необходимое действие в меню`
               );
             }
@@ -285,6 +314,18 @@ const initBot = function () {
               } рублей / месяц.`
             );
           }
+
+          const phoneNumber = await createUserResponse(
+            bot,
+            msg.chat.id,
+            `Введите, пожалуйста, свой телефон, который вы будете использовать для доступа к материалам.`,
+            "Номер телефона успешно сохранен",
+            "Ошибка при сохранении номера телефона",
+            Number(configManager.getConfig().QUESTION_ATTEMPTS)
+          );
+
+          await db.prepareUser(msg.from.id, msg.from.username);
+          await db.addInfoPhone(msg.from.id, phoneNumber);
 
           await bot.sendMessage(msg.chat.id, "Выберите действие ниже:", {
             reply_markup: {
@@ -311,6 +352,8 @@ const initBot = function () {
             `\nСтатус Вашей подписки: ${remainedSubTime}`
           );
         } else {
+          const phoneNumber = await db.getInfoPhone(msg.from.id);
+
           const payment = await yooKassa.createPayment(
             {
               amount: {
@@ -323,6 +366,26 @@ const initBot = function () {
               confirmation: {
                 type: "redirect",
                 return_url: configManager.getConfig().BOT_LINK,
+              },
+              receipt: {
+                customer: {
+                  phone: phoneNumber,
+                },
+                items: [
+                  {
+                    description: `Оформление подписки, ${
+                      configManager.getConfig().SUB_PRICE
+                    } рублей`,
+                    quantity: "1.00",
+                    amount: {
+                      value: configManager.getConfig().SUB_PRICE,
+                      currency: "RUB",
+                    },
+                    vat_code: "1",
+                    payment_mode: "full_payment",
+                    payment_subject: "service",
+                  },
+                ],
               },
               metadata: {
                 user_id: msg.from.id,
@@ -375,12 +438,31 @@ const initBot = function () {
               ? "Автоплатежи активны"
               : "Автоплатежи не активны";
 
-            if (status === "succeed")
+            if (status === "succeed") {
               await bot.sendMessage(
                 msg.chat.id,
                 "Оплата прошла успешно.\n" + getCardSavedStatus
               );
-            else if (status === "waitingForCapture")
+
+              const fullname = await createUserResponse(
+                bot,
+                msg.chat.id,
+                `Введите, пожалуйста, своё ФИО`,
+                "Данные сохранены",
+                "Ошибка при сохранении ФИО",
+                Number(configManager.getConfig().QUESTION_ATTEMPTS)
+              );
+              const email = await createUserResponse(
+                bot,
+                msg.chat.id,
+                `Введите, пожалуйста, свой email`,
+                "Данные сохранены",
+                "Ошибка при сохранении email",
+                Number(configManager.getConfig().QUESTION_ATTEMPTS)
+              );
+
+              await db.addInfoFullnameAndEmail(msg.from.id, fullname, email);
+            } else if (status === "waitingForCapture")
               // TODO: cover case, set timeSub when payment succeed
               await bot.sendMessage(
                 msg.chat.id,
