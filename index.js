@@ -284,36 +284,35 @@ const initBot = function () {
               resize_keyboard: true,
             },
           });
+        } else if (userNickname) {
+          const timeSub = await db.getTimeSubscription(userId);
+          const remainedSubTime = getSubscriptionRemainingTime(timeSub);
+
+          // if (remainedSubTime) {
+          await bot.sendMessage(
+            msg.chat.id,
+            `Добро пожаловать, ${userNickname}!\nСтатус Вашей подписки: ${
+              remainedSubTime || "неактивен"
+            }`
+          );
+
+          await bot.sendMessage(
+            msg.chat.id,
+            `Спасибо, что выбираете нас! Если необходимо проверить историю списаний, нажмите кнопку «История списаний» внизу бота`
+          );
+
+          // await bot.sendMessage(
+          //   msg.chat.id,
+          //   `Выберите необходимое действие в меню`
+          // );
+          // }
         } else {
-          if (userNickname) {
-            const timeSub = await db.getTimeSubscription(userId);
-
-            const remainedSubTime = getSubscriptionRemainingTime(timeSub);
-
-            if (remainedSubTime !== false) {
-              await bot.sendMessage(
-                msg.chat.id,
-                `Добро пожаловать, ${userNickname}!\nСтатус Вашей подписки: ${remainedSubTime}`
-              );
-
-              await bot.sendMessage(
-                msg.chat.id,
-                `Спасибо, что выбираете нас! Если необходимо проверить историю списаний, нажмите кнопку «История списаний» внизу бота`
-              );
-
-              await bot.sendMessage(
-                msg.chat.id,
-                `Выберите необходимое действие в меню`
-              );
-            }
-          } else {
-            await bot.sendMessage(
-              msg.chat.id,
-              `Добро пожаловать! Данный бот служит для оформления ежемесячной подписки на занятия португальским языком. Подписку в любой момент можно отменить. Стоимость подписки ${
-                configManager.getConfig().SUB_PRICE
-              } рублей / месяц.`
-            );
-          }
+          await bot.sendMessage(
+            msg.chat.id,
+            `Добро пожаловать! Данный бот служит для оформления ежемесячной подписки на занятия португальским языком. Подписку в любой момент можно отменить. Стоимость подписки ${
+              configManager.getConfig().SUB_PRICE
+            } рублей / месяц.`
+          );
 
           const phoneNumber = await createUserResponse(
             bot,
@@ -326,16 +325,16 @@ const initBot = function () {
 
           await db.prepareUser(msg.from.id, msg.from.username);
           await db.addInfoPhone(msg.from.id, phoneNumber);
-
-          await bot.sendMessage(msg.chat.id, "Выберите действие ниже:", {
-            reply_markup: {
-              keyboard: commands,
-              force_reply: true,
-              // one_time_keyboard: true,
-              resize_keyboard: true,
-            },
-          });
         }
+
+        await bot.sendMessage(msg.chat.id, "Выберите действие ниже:", {
+          reply_markup: {
+            keyboard: commands,
+            force_reply: true,
+            // one_time_keyboard: true,
+            resize_keyboard: true,
+          },
+        });
       }
       if (msg.text === "Подписка") {
         const timeSub = await db.getTimeSubscription(userId);
@@ -717,7 +716,7 @@ const initBot = function () {
     }
   });
 
-  bot.on("polling_error", (err) => console.log(err.data.error.message));
+  bot.on("polling_error", (err) => console.error(err?.data?.error?.message));
 };
 
 db.init().then(initApp);
