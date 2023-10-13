@@ -341,7 +341,7 @@ const initBot = function () {
             reply,
             /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/,
             "Номер телефона успешно сохранен",
-            "Ошибка при сохранении номера телефона"
+            "Введите номер телефона корректно"
           );
 
           await db.prepareUser(msg.from.id, msg.from.username);
@@ -369,7 +369,7 @@ const initBot = function () {
 
           await bot.sendMessage(
             msg.chat.id,
-            `\nСтатус Вашей подписки: ${remainedSubTime}`
+            `\nСтатус Вашей подписки: ${remainedSubTime || "неактивен"}`
           );
         } else {
           const phoneNumber = await db.getInfoPhone(msg.from.id);
