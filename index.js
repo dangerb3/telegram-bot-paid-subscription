@@ -9,12 +9,14 @@ import {
   parseTimestampToHumanDate,
   getSubscriptionStatus,
   sendHistoryFile,
-  createUserResponse,
   parseTableHistory,
+  createUserResponseManaged,
 } from "./utils/utils.js";
 import YooKassa from "yookassa";
 
 import configManager from "./utils/configManager.js";
+
+import { ReplyManager } from "node-telegram-operation-manager";
 
 import logToFile from "log-to-file";
 
@@ -251,6 +253,8 @@ const checkIsAdmin = (username) => {
     .includes(username);
 };
 
+const reply = new ReplyManager();
+
 const initBot = function () {
   const commands = [["Подписка"], ["Прервать подписку"], ["История списаний"]];
 
@@ -263,6 +267,13 @@ const initBot = function () {
     ["Экспортировать статус подписок всех пользователей"],
     ["Экспортировать пользователей с неоплаченной подпиской"],
   ];
+
+  bot.on("message", (msg) => {
+    if (reply.expects(msg.chat.id)) {
+      let { text, entities } = msg;
+      reply.execute(msg.chat.id, { text, entities });
+    }
+  });
 
   bot.on("text", async (msg) => {
     try {
@@ -314,13 +325,23 @@ const initBot = function () {
             } рублей / месяц.`
           );
 
-          const phoneNumber = await createUserResponse(
-            bot,
+          bot.sendMessage(
             msg.chat.id,
             `Введите, пожалуйста, свой телефон, который вы будете использовать для доступа к материалам.`,
+            {
+              reply_markup: {
+                remove_keyboard: true,
+              },
+            }
+          );
+
+          const phoneNumber = await createUserResponseManaged(
+            bot,
+            msg.chat.id,
+            reply,
+            /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/,
             "Номер телефона успешно сохранен",
-            "Ошибка при сохранении номера телефона",
-            Number(configManager.getConfig().QUESTION_ATTEMPTS)
+            "Ошибка при сохранении номера телефона"
           );
 
           await db.prepareUser(msg.from.id, msg.from.username);
@@ -443,21 +464,32 @@ const initBot = function () {
                 "Оплата прошла успешно.\n" + getCardSavedStatus
               );
 
-              const fullname = await createUserResponse(
-                bot,
+              await bot.sendMessage(
                 msg.chat.id,
-                `Введите, пожалуйста, своё ФИО`,
-                "Данные сохранены",
-                "Ошибка при сохранении ФИО",
-                Number(configManager.getConfig().QUESTION_ATTEMPTS)
+                "Введите, пожалуйста, своё ФИО (через пробел)"
               );
-              const email = await createUserResponse(
+
+              const fullname = await createUserResponseManaged(
                 bot,
                 msg.chat.id,
-                `Введите, пожалуйста, свой email`,
+                reply,
+                /[\S\s]+[\S]+/,
                 "Данные сохранены",
-                "Ошибка при сохранении email",
-                Number(configManager.getConfig().QUESTION_ATTEMPTS)
+                "Неверный формат"
+              );
+
+              await bot.sendMessage(
+                msg.chat.id,
+                `Введите, пожалуйста, свой email`
+              );
+
+              const email = await createUserResponseManaged(
+                bot,
+                msg.chat.id,
+                reply,
+                /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/,
+                "Данные сохранены",
+                "Неверный формат"
               );
 
               await db.addInfoFullnameAndEmail(msg.from.id, fullname, email);
@@ -716,7 +748,9 @@ const initBot = function () {
     }
   });
 
-  bot.on("polling_error", (err) => console.error(err?.data?.error?.message));
+  bot.on("polling_error", (err) =>
+    console.error("polling_error: " + err?.data?.error?.message)
+  );
 };
 
 db.init().then(initApp);

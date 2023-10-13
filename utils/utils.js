@@ -244,3 +244,25 @@ export const createUserResponse = async (
     return null;
   } else return answer;
 };
+
+export const createUserResponseManaged = async (
+  bot,
+  chatId,
+  replyManager,
+  regexMask,
+  answerText,
+  badAnswerText
+) => {
+  return await new Promise((resolve) => {
+    replyManager.register(chatId, (result) => {
+      if (result.text.match(regexMask)) {
+        bot.sendMessage(chatId, answerText);
+        resolve(result.text);
+        return { repeat: false };
+      } else {
+        bot.sendMessage(chatId, badAnswerText);
+        return { repeat: true };
+      }
+    });
+  });
+};

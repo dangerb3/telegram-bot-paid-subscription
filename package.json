@@ -30,6 +30,7 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.6.0",
     "lodash": "^4.17.21",
-    "log-to-file": "^3.0.3"
+    "log-to-file": "^3.0.3",
+    "node-telegram-operation-manager": "^1.2.0"
   }
 }

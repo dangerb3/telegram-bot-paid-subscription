@@ -2701,6 +2701,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-telegram-operation-manager@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "node-telegram-operation-manager@npm:1.2.0"
+  checksum: db6ab73ea33d6873b8c5d064ccfe532e193893b496e16d87d04543cf2f0e0b68ac32fdd7b256b182cade5515df11d6a36405ccf1b1f20aa4caed1ea58f25deb6
+  languageName: node
+  linkType: hard
+
 "nodemon@npm:^3.0.1":
   version: 3.0.1
   resolution: "nodemon@npm:3.0.1"
@@ -3828,6 +3835,7 @@ __metadata:
     lodash: ^4.17.21
     log-to-file: ^3.0.3
     node-telegram-bot-api: ^0.61.0
+    node-telegram-operation-manager: ^1.2.0
     nodemon: ^3.0.1
     sqlite3: ^5.1.6
     uuid: ^9.0.0
