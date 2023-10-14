@@ -284,7 +284,9 @@ const initBot = function () {
       if (msg.text === "/start") {
         await db.addNewUserChat(userId, username, msg.chat.id);
 
-        if (checkIsAdmin(username)) {
+        const isAdmin = checkIsAdmin(username);
+
+        if (isAdmin) {
           await bot.sendMessage(msg.chat.id, "Добро пожаловать, администратор");
 
           await bot.sendMessage(msg.chat.id, "Выберите действие", {
@@ -348,14 +350,15 @@ const initBot = function () {
           await db.addInfoPhone(msg.from.id, phoneNumber);
         }
 
-        await bot.sendMessage(msg.chat.id, "Выберите действие ниже:", {
-          reply_markup: {
-            keyboard: commands,
-            force_reply: true,
-            // one_time_keyboard: true,
-            resize_keyboard: true,
-          },
-        });
+        if (!isAdmin)
+          await bot.sendMessage(msg.chat.id, "Выберите действие ниже:", {
+            reply_markup: {
+              keyboard: commands,
+              force_reply: true,
+              // one_time_keyboard: true,
+              resize_keyboard: true,
+            },
+          });
       }
       if (msg.text === "Подписка") {
         const timeSub = await db.getTimeSubscription(userId);
