@@ -59,8 +59,8 @@ expressApp.get("/", (req, res) => {
 });
 
 const job = new CronJob(
-  // "0 * * * *", // every hour
-  "* * * * *", // every minute
+  "0 * * * *", // every hour
+  // "* * * * *", // every minute
   async () => {
     try {
       console.log("Cron Task executing ...");
