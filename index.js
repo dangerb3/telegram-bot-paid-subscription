@@ -322,9 +322,10 @@ const initBot = function () {
         } else {
           await bot.sendMessage(
             msg.chat.id,
-            `Добро пожаловать! Данный бот служит для оформления ежемесячной подписки на занятия португальским языком. Подписку в любой момент можно отменить. Стоимость подписки ${
+            `Добро пожаловать! Данный <b>бот</b> служит для оформления ежемесячной подписки на занятия португальским языком. Подписку в любой момент можно отменить. Стоимость подписки ${
               configManager.getConfig().SUB_PRICE
-            } рублей / месяц.`
+            } рублей / месяц.`,
+            { parse_mode: "HTML" }
           );
 
           bot.sendMessage(
@@ -429,10 +430,13 @@ const initBot = function () {
               configManager.getConfig().SUB_PERIOD_DAYS
             } дней составляет ${
               configManager.getConfig().SUB_PRICE
-            } рублей.\nОплата доступна по ссылке:\n ${payment.confirmationUrl}`
+            } рублей.\nОплата доступна по ссылке:\n ${payment.confirmationUrl}`,
+            {
+              reply_markup: {
+                remove_keyboard: true,
+              },
+            }
           );
-
-          await bot.sendMessage(msg.chat.id, "Ожидание оплаты ...");
 
           let status;
           let savedPayment;
@@ -464,7 +468,15 @@ const initBot = function () {
             if (status === "succeed") {
               await bot.sendMessage(
                 msg.chat.id,
-                "Оплата прошла успешно.\n" + getCardSavedStatus
+                "Оплата прошла успешно.\n" + getCardSavedStatus,
+                {
+                  reply_markup: {
+                    keyboard: commands,
+                    force_reply: true,
+                    // one_time_keyboard: true,
+                    resize_keyboard: true,
+                  },
+                }
               );
 
               await bot.sendMessage(
@@ -501,7 +513,15 @@ const initBot = function () {
               await bot.sendMessage(
                 msg.chat.id,
                 "Оплата прошла успешно.\n Транзакция ожидает подтверждения продавца.\n" +
-                  getCardSavedStatus
+                  getCardSavedStatus,
+                {
+                  reply_markup: {
+                    keyboard: commands,
+                    force_reply: true,
+                    // one_time_keyboard: true,
+                    resize_keyboard: true,
+                  },
+                }
               );
 
             const date = new Date();
@@ -569,7 +589,15 @@ const initBot = function () {
               msg.chat.id,
               "Произошла ошибка при оплате. Обратитесь к администратору или попробуйте ещё раз." +
                 "\nid платежа: " +
-                savedPayment.id
+                savedPayment.id,
+              {
+                reply_markup: {
+                  keyboard: commands,
+                  force_reply: true,
+                  // one_time_keyboard: true,
+                  resize_keyboard: true,
+                },
+              }
             );
           }
         }
