@@ -53,9 +53,7 @@ export const parseTableHistory = (items) => {
 
   const keys = Object.keys(items[0]); // Use the keys of our first item to use as column headers
 
-  const headerRow = `| ${keys
-    .map((key) => key.substring(0, columnWidth).padEnd(columnWidth))
-    .join(" | ")} |`; // Build our header row with pipes to separate columns
+  const headerRow = `| ${keys.map((key) => key.substring(0, columnWidth).padEnd(columnWidth)).join(" | ")} |`; // Build our header row with pipes to separate columns
   const separatorRow = headerRow.replace(/[^|]/g, "-"); // Add a line below our header row
 
   let rows = [headerRow, separatorRow]; // Start collecting our rows
@@ -64,15 +62,9 @@ export const parseTableHistory = (items) => {
     // Now let's look at each item
     let row = [];
     for (const key of keys) {
-      row.push(
-        item[key].toString().substring(0, columnWidth).padEnd(columnWidth)
-      ); // Add each value with the correct length
+      row.push(item[key].toString().substring(0, columnWidth).padEnd(columnWidth)); // Add each value with the correct length
     }
-    rows.push(
-      `| ${row
-        .map((entry) => entry.substring(0, columnWidth).padEnd(columnWidth))
-        .join(" | ")} |`
-    ); // Store the complete row
+    rows.push(`| ${row.map((entry) => entry.substring(0, columnWidth).padEnd(columnWidth)).join(" | ")} |`); // Store the complete row
   }
 
   return "<pre>\n" + rows.join("\n") + "\n</pre>";
@@ -172,14 +164,7 @@ export const createPDFReport = (sourceData, fileName) => {
   return doc;
 };
 
-export const sendHistoryFile = async (
-  historySource,
-  location,
-  fileName,
-  bot,
-  chatId,
-  handleEmptyMessage
-) => {
+export const sendHistoryFile = async (historySource, location, fileName, bot, chatId, handleEmptyMessage) => {
   const history = historySource.map((item) => ({
     ...item,
     time_sub: parseTimestampToHumanDate(item.time_sub),
@@ -210,14 +195,7 @@ export const sendHistoryFile = async (
   }
 };
 
-export const createUserResponse = async (
-  bot,
-  chatId,
-  questionText,
-  answerText,
-  badAnswerText,
-  maxAttempts
-) => {
+export const createUserResponse = async (bot, chatId, questionText, answerText, badAnswerText, maxAttempts) => {
   let answer = "";
   let count = 0;
 
@@ -245,14 +223,7 @@ export const createUserResponse = async (
   } else return answer;
 };
 
-export const createUserResponseManaged = async (
-  bot,
-  chatId,
-  replyManager,
-  regexMask,
-  answerText,
-  badAnswerText
-) => {
+export const createUserResponseManaged = async (bot, chatId, replyManager, regexMask, answerText, badAnswerText) => {
   return await new Promise((resolve) => {
     replyManager.register(chatId, (result) => {
       if (result.text.match(regexMask)) {

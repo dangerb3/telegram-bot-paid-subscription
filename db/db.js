@@ -9,8 +9,7 @@ const columns_users = `(${columns}, UNIQUE(user_id))`;
 const columns_payments = `(${columns})`;
 
 const CREATE_USERS_TABLE = "CREATE TABLE IF NOT EXISTS users " + columns_users;
-const CREATE_PAYMENTS_TABLE =
-  "CREATE TABLE IF NOT EXISTS payments " + columns_payments;
+const CREATE_PAYMENTS_TABLE = "CREATE TABLE IF NOT EXISTS payments " + columns_payments;
 const CREATE_USERS_CHAT_TABLE =
   "CREATE TABLE IF NOT EXISTS users_chats " +
   "(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, nickname TEXT NOT NULL, chat_id INTEGER NOT NULL, UNIQUE(user_id, chat_id))";
@@ -77,9 +76,7 @@ const database = {
 
       db.serialize(() => {
         try {
-          let stmt = db.prepare(
-            `INSERT INTO users (user_id, nickname, fullname) VALUES (?,?,?)`
-          );
+          let stmt = db.prepare(`INSERT INTO users (user_id, nickname, fullname) VALUES (?,?,?)`);
           stmt.run(userId, nickname, fullname);
           stmt.finalize();
           resolve();
@@ -97,32 +94,20 @@ const database = {
       const db = getConnection();
 
       db.serialize(() => {
-        db.get(
-          `SELECT nickname FROM users WHERE user_id='${userId}'`,
-          (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row?.nickname);
-            }
-
-            releaseConnection(db);
+        db.get(`SELECT nickname FROM users WHERE user_id='${userId}'`, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row?.nickname);
           }
-        );
+
+          releaseConnection(db);
+        });
       });
     });
   },
 
-  setSubscription(
-    userId,
-    timeSub,
-    paymentId,
-    paymentMethod,
-    cardNumbers,
-    paymentStatus,
-    paymentDate,
-    paymentAmount
-  ) {
+  setSubscription(userId, timeSub, paymentId, paymentMethod, cardNumbers, paymentStatus, paymentDate, paymentAmount) {
     return new Promise((resolve, reject) => {
       const db = getConnection();
 
@@ -137,7 +122,7 @@ const database = {
             paymentStatus,
             paymentDate,
             paymentAmount,
-            userId
+            userId,
           );
           resolve();
         } catch (e) {
@@ -154,18 +139,15 @@ const database = {
       const db = getConnection();
 
       db.serialize(() => {
-        db.get(
-          `SELECT payment_status, payment_date FROM users WHERE user_id='${userId}'`,
-          (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row);
-            }
-
-            releaseConnection(db);
+        db.get(`SELECT payment_status, payment_date FROM users WHERE user_id='${userId}'`, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row);
           }
-        );
+
+          releaseConnection(db);
+        });
       });
     });
   },
@@ -178,7 +160,7 @@ const database = {
         try {
           db.run(
             "INSERT INTO payments (user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date, payment_amount, info_phone, info_fullname, info_email) SELECT user_id, nickname, fullname, time_sub, payment_code, payment_method, card_numbers, payment_status, payment_date, payment_amount, info_phone, info_fullname, info_email FROM users WHERE user_id=?",
-            userId
+            userId,
           );
           resolve();
         } catch (e) {
@@ -195,18 +177,15 @@ const database = {
       const db = getConnection();
 
       db.serialize(() => {
-        db.get(
-          `SELECT time_sub FROM users WHERE user_id='${userId}'`,
-          (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row?.time_sub);
-            }
-
-            releaseConnection(db);
+        db.get(`SELECT time_sub FROM users WHERE user_id='${userId}'`, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row?.time_sub);
           }
-        );
+
+          releaseConnection(db);
+        });
       });
     });
   },
@@ -226,7 +205,7 @@ const database = {
             }
 
             releaseConnection(db);
-          }
+          },
         );
       });
     });
@@ -273,18 +252,15 @@ const database = {
       const db = getConnection();
 
       db.serialize(() => {
-        db.all(
-          `SELECT * FROM users WHERE payment_status!='succeeded'`,
-          (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row);
-            }
-
-            releaseConnection(db);
+        db.all(`SELECT * FROM users WHERE payment_status!='succeeded'`, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row);
           }
-        );
+
+          releaseConnection(db);
+        });
       });
     });
   },
@@ -295,9 +271,7 @@ const database = {
 
       db.serialize(() => {
         try {
-          let stmt = db.prepare(
-            `INSERT OR IGNORE INTO users_chats (user_id, nickname, chat_id) VALUES (?,?,?)`
-          );
+          let stmt = db.prepare(`INSERT OR IGNORE INTO users_chats (user_id, nickname, chat_id) VALUES (?,?,?)`);
           stmt.run(userId, username, chatId);
           stmt.finalize();
           resolve();
@@ -333,18 +307,15 @@ const database = {
       const db = getConnection();
 
       db.serialize(() => {
-        db.get(
-          `SELECT chat_id FROM users_chats WHERE user_id=${userId}`,
-          (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row?.chat_id);
-            }
-
-            releaseConnection(db);
+        db.get(`SELECT chat_id FROM users_chats WHERE user_id=${userId}`, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row?.chat_id);
           }
-        );
+
+          releaseConnection(db);
+        });
       });
     });
   },
@@ -355,9 +326,7 @@ const database = {
 
       db.serialize(() => {
         try {
-          let stmt = db.prepare(
-            `INSERT OR IGNORE INTO users (user_id, nickname) VALUES (?, ?)`
-          );
+          let stmt = db.prepare(`INSERT OR IGNORE INTO users (user_id, nickname) VALUES (?, ?)`);
           stmt.run(userId, nickname);
           stmt.finalize();
           resolve();
@@ -376,9 +345,7 @@ const database = {
 
       db.serialize(() => {
         try {
-          let stmt = db.prepare(
-            `UPDATE users SET info_phone=? WHERE user_id=?`
-          );
+          let stmt = db.prepare(`UPDATE users SET info_phone=? WHERE user_id=?`);
           stmt.run(infoPhone, userId);
           stmt.finalize();
           resolve();
@@ -396,18 +363,15 @@ const database = {
       const db = getConnection();
 
       db.serialize(() => {
-        db.get(
-          `SELECT info_phone FROM users WHERE user_id='${userId}'`,
-          (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row?.info_phone);
-            }
-
-            releaseConnection(db);
+        db.get(`SELECT info_phone FROM users WHERE user_id='${userId}'`, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row?.info_phone);
           }
-        );
+
+          releaseConnection(db);
+        });
       });
     });
   },
@@ -418,9 +382,7 @@ const database = {
 
       db.serialize(() => {
         try {
-          let stmt = db.prepare(
-            `UPDATE users SET info_fullname=?, info_email=? WHERE user_id=?`
-          );
+          let stmt = db.prepare(`UPDATE users SET info_fullname=?, info_email=? WHERE user_id=?`);
           stmt.run(infoFullname, infoEmail, userId);
           stmt.finalize();
           resolve();

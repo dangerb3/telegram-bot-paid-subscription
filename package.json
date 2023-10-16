@@ -9,6 +9,7 @@
     "dev": "nodemon index.js",
     "clean_db": "./clean_db.sh",
     "clean_code": "jscpd index.js",
+    "prettier": "prettier index.js ./utils ./db --write",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "dangerb3",
@@ -32,6 +33,7 @@
     "jspdf-autotable": "^3.6.0",
     "lodash": "^4.17.21",
     "log-to-file": "^3.0.3",
-    "node-telegram-operation-manager": "^1.2.0"
+    "node-telegram-operation-manager": "^1.2.0",
+    "prettier": "^3.0.3"
   }
 }
