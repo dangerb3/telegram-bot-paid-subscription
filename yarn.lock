@@ -915,6 +915,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"cyrillic-to-translit-js@npm:^3.2.1":
+  version: 3.2.1
+  resolution: "cyrillic-to-translit-js@npm:3.2.1"
+  dependencies:
+    lodash.invert: ^4.3.0
+  checksum: 9140bf5298e55f6e7e5d660a4d1f2f46593a0ba2e6f2b1389674b7ef2d602ff4a6036f12857dda3a48ad0db52237079eabd84e32782871b1e088254e91338b25
+  languageName: node
+  linkType: hard
+
 "dashdash@npm:^1.12.0":
   version: 1.14.1
   resolution: "dashdash@npm:1.14.1"
@@ -2277,6 +2286,13 @@ __metadata:
     is-promise: ^2.0.0
     promise: ^7.0.1
   checksum: 1e019fde17a38766a5b96bccf0738156badc60cfa61e2ba8a8bbd3b855e7d5d7e17492b8a66e4aaabc39483e335d23217343ae32d0f7e5a81af42a95c3e075f9
+  languageName: node
+  linkType: hard
+
+"lodash.invert@npm:^4.3.0":
+  version: 4.3.0
+  resolution: "lodash.invert@npm:4.3.0"
+  checksum: 3c09a804f629498e45cce86155790e064e565d556f2a714400151189832d8444a68f39b721ae38107bd73d4b0f8cae7ceedc0aa2b297bb50d176d39066f75687
   languageName: node
   linkType: hard
 
@@ -3827,6 +3843,7 @@ __metadata:
   dependencies:
     axios: ^1.5.0
     cron: ^2.4.3
+    cyrillic-to-translit-js: ^3.2.1
     dotenv: ^16.3.1
     express: ^4.18.2
     jscpd: ^3.5.10
@@ -3838,6 +3855,7 @@ __metadata:
     node-telegram-operation-manager: ^1.2.0
     nodemon: ^3.0.1
     sqlite3: ^5.1.6
+    translit-rus-eng: ^1.0.8
     uuid: ^9.0.0
     yookassa: ^0.1.1
   languageName: unknown
@@ -3907,6 +3925,13 @@ __metadata:
   version: 0.0.3
   resolution: "tr46@npm:0.0.3"
   checksum: 726321c5eaf41b5002e17ffbd1fb7245999a073e8979085dacd47c4b4e8068ff5777142fc6726d6ca1fd2ff16921b48788b87225cbc57c72636f6efa8efbffe3
+  languageName: node
+  linkType: hard
+
+"translit-rus-eng@npm:^1.0.8":
+  version: 1.0.8
+  resolution: "translit-rus-eng@npm:1.0.8"
+  checksum: 7bcd704550c8d9c3d8c5593f8afd46d04b7d8ffcd243835ef8563811cee317a3f69b7c868a7d3ba575705f9dfb0aaf7cb6fe6f3a96d49045621341bf62377d71
   languageName: node
   linkType: hard
 

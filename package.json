@@ -21,6 +21,7 @@
     "node-telegram-bot-api": "^0.61.0",
     "nodemon": "^3.0.1",
     "sqlite3": "^5.1.6",
+    "translit-rus-eng": "^1.0.8",
     "uuid": "^9.0.0",
     "yookassa": "^0.1.1"
   },

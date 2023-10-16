@@ -14,6 +14,8 @@ import {
 } from "./utils/utils.js";
 import YooKassa from "yookassa";
 
+import translitRusEng from "translit-rus-eng";
+
 import configManager from "./utils/configManager.js";
 
 import { ReplyManager } from "node-telegram-operation-manager";
@@ -651,7 +653,12 @@ const initBot = function () {
         const historySource = await db.getPaymentsHistory(userId);
 
         await sendHistoryFile(
-          historySource,
+          [
+            {
+              ...historySource[0],
+              info_fullname: translitRusEng(historySource[0]?.info_fullname),
+            },
+          ],
           configManager.getConfig().OUTPUT_FOLDER,
           "report-" + userId + "-" + Date.now() + ".pdf",
           bot,
@@ -667,8 +674,20 @@ const initBot = function () {
       ) {
         const historySource = await db.getAllUsersPaymentsHistory();
 
+        const historySourceWithFullname =
+          historySource.length === 0
+            ? []
+            : [
+                {
+                  ...historySource[0],
+                  info_fullname: translitRusEng(
+                    historySource[0]?.info_fullname
+                  ),
+                },
+              ];
+
         await sendHistoryFile(
-          historySource,
+          historySourceWithFullname,
           configManager.getConfig().OUTPUT_FOLDER,
           "full-payments-report-" + Date.now() + ".pdf",
           bot,
@@ -683,8 +702,20 @@ const initBot = function () {
       ) {
         const historySource = await db.getAllUsersSubscriptionStatus();
 
+        const historySourceWithFullname =
+          historySource.length === 0
+            ? []
+            : [
+                {
+                  ...historySource[0],
+                  info_fullname: translitRusEng(
+                    historySource[0]?.info_fullname
+                  ),
+                },
+              ];
+
         await sendHistoryFile(
-          historySource,
+          historySourceWithFullname,
           configManager.getConfig().OUTPUT_FOLDER,
           "full-users-subscriptions-report-" + Date.now() + ".pdf",
           bot,
@@ -763,8 +794,20 @@ const initBot = function () {
       ) {
         const historySource = await db.getAllUsersWithBadSubscriptionStatus();
 
+        const historySourceWithFullname =
+          historySource.length === 0
+            ? []
+            : [
+                {
+                  ...historySource[0],
+                  info_fullname: translitRusEng(
+                    historySource[0]?.info_fullname
+                  ),
+                },
+              ];
+
         await sendHistoryFile(
-          historySource,
+          historySourceWithFullname,
           configManager.getConfig().OUTPUT_FOLDER,
           "bad-subscription-status-users-subscriptions-report-" +
             Date.now() +
